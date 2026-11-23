@@ -64,6 +64,7 @@ const calendarRoute = createLazyRoute(() => import('./pages/CalendarPage'))
 const storageMetricsRoute = createLazyRoute(
   () => import('./pages/StorageMetricsPage'),
 )
+const crossSeedRoute = createLazyRoute(() => import('./pages/CrossSeedPage'))
 const collectionInfoRoute = createLazyRoute(
   () => import('./pages/CollectionInfoPage'),
 )
@@ -199,6 +200,11 @@ const appRoutes: AppRoute[] = [
         path: 'storage-metrics',
         lazy: storageMetricsRoute.lazy,
         preload: storageMetricsRoute.preload,
+      },
+      {
+        path: 'cross-seed',
+        lazy: crossSeedRoute.lazy,
+        preload: crossSeedRoute.preload,
       },
       {
         path: 'overlays',

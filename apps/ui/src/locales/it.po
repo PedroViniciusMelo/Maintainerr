@@ -86,8 +86,16 @@ msgstr ""
 msgid "{collectionTitle} - Maintainerr"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedTree.tsx
+msgid "{count, plural, one {# cross-seed} other {# cross-seeds}}"
+msgstr ""
+
 #: src/components/Collection/CollectionDetail/CollectionInfo/index.tsx
 msgid "{count, plural, one {# day} other {# days}}"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "{count, plural, one {# download} other {# downloads}}"
 msgstr ""
 
 #: src/components/Collection/CollectionDetail/CollectionInfo/index.tsx
@@ -170,6 +178,10 @@ msgstr ""
 msgid "{enabledAgentCount, plural, one {# agent enabled} other {# agents enabled}}"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "{failed, plural, one {# could not be removed. See the logs.} other {# could not be removed. See the logs.}}"
+msgstr ""
+
 #: src/components/OverlayEditor/PropertiesPanel.tsx
 msgid "{formatList} - up to {imageUploadMaxLabel}."
 msgstr ""
@@ -223,6 +235,10 @@ msgstr ""
 msgid "{mountCount, plural, one {Aggregated across # mount} other {Aggregated across # mounts}}"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "{notOrphan, plural, one {# skipped: no longer an orphan.} other {# skipped: no longer orphans.}}"
+msgstr ""
+
 #: src/components/Rules/Rule/RuleCreator/RuleInput/index.tsx
 msgid "{path} (saved selection; total space unavailable)"
 msgstr ""
@@ -243,8 +259,16 @@ msgstr ""
 msgid "{providerTitle} settings could not be updated"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "{removed, plural, one {Removed # download.} other {Removed # downloads.}}"
+msgstr ""
+
 #: src/components/Settings/About/Releases/index.tsx
 msgid "{secondsAgo, plural, one {# second ago} other {# seconds ago}}"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "{selected} of {total} selected"
 msgstr ""
 
 #: src/components/Services/useServices.tsx
@@ -279,12 +303,24 @@ msgstr ""
 msgid "{skippedRuleCount, plural, one {# rule uses properties not available in {pendingName}.} other {# rules use properties not available in {pendingName}.}}"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "{stillSeeding, plural, one {# kept: its seeding goal is not met yet.} other {# kept: their seeding goal is not met yet.}}"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "{stillSeedingSelected, plural, one {Also remove the # download that has not met its seeding goal yet. It is kept otherwise.} other {Also remove the # downloads that have not met their seeding goal yet. They are kept otherwise.}}"
+msgstr ""
+
 #: src/pages/OverlayTemplateEditorPage.tsx
 msgid "{templateName} - Overlay Editor - Maintainerr"
 msgstr ""
 
 #: src/components/Rules/RuleGroup/AddModal/index.tsx
 msgid "{templateName} (default)"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "{torrentCount, plural, one {# download read.} other {# downloads read.}}"
 msgstr ""
 
 #: src/components/Calendar/index.tsx
@@ -491,6 +527,10 @@ msgstr ""
 
 #: src/components/Settings/Servarr/ServarrServerCard.tsx
 msgid "Allowed: {chars}"
+msgstr ""
+
+#: src/components/Settings/DownloadClient/index.tsx
+msgid "Also remove cross-seeds"
 msgstr ""
 
 #: src/components/Settings/Notifications/NotificationAgentCard.tsx
@@ -1030,6 +1070,20 @@ msgstr ""
 msgid "Count Is Smaller Than"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+#: src/components/Layout/NavBar/index.tsx
+msgid "Cross-seed"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Cross-seed - Maintainerr"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Cross-seeds recognized by tag {tags} and category {categories}, or by matching files."
+msgstr ""
+
 #: src/components/StorageMetrics/index.tsx
 msgid "Cumulative count of media items Maintainerr has handled across all collections, with the on-disk space reclaimed by delete-style actions. Unmonitor and quality-change actions do not contribute to bytes reclaimed."
 msgstr ""
@@ -1283,6 +1337,7 @@ msgid "Done <0>selecting</0>"
 msgstr ""
 
 #: src/components/Common/YamlImporterModal/index.tsx
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
 msgid "Download"
 msgstr ""
 
@@ -1306,6 +1361,10 @@ msgstr ""
 
 #: src/components/Services/ServicesHub.tsx
 msgid "Downloads"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Downloads that share data, each original with its cross-seeds, and the ones left orphaned once their original or their media is gone."
 msgstr ""
 
 #: src/components/Rules/Rule/RuleCreator/index.tsx
@@ -2366,6 +2425,10 @@ msgstr ""
 msgid "Master switch for overlay processing"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedTree.tsx
+msgid "Matched by files"
+msgstr ""
+
 #: src/components/Rules/Rule/RuleCreator/CommunityRuleUpload/index.tsx
 msgid "Max 20 characters"
 msgstr ""
@@ -2387,6 +2450,10 @@ msgstr ""
 #: src/components/Collection/CollectionDetail/TestMediaItem/index.tsx
 #: src/pages/CollectionDetailPage.tsx
 msgid "Media"
+msgstr ""
+
+#: src/components/CrossSeed/crossSeedLabels.tsx
+msgid "Media removed"
 msgstr ""
 
 #: src/components/Services/ServicesHub.tsx
@@ -2624,6 +2691,18 @@ msgstr ""
 msgid "No community rules found for this type & Maintainerr version."
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "No cross-seed tag or category was found; cross-seeds are recognized by matching files."
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedTree.tsx
+msgid "No cross-seeded downloads were found in the download client."
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedTree.tsx
+msgid "No cross-seeds match the search."
+msgstr ""
+
 #: src/components/Rules/RuleGroup/AddModal/CollectionPosterPicker.tsx
 msgid "No custom poster"
 msgstr ""
@@ -2638,6 +2717,10 @@ msgstr ""
 
 #: src/components/Rules/Rule/RuleCreator/RuleInput/index.tsx
 msgid "No disk paths with total space reported by ARR"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "No download client is configured."
 msgstr ""
 
 #: src/components/OverlayEditor/LayerPanel.tsx
@@ -2682,6 +2765,10 @@ msgstr ""
 
 #: src/components/Rules/RuleGroup/AddModal/ConfigureNotificationModal/index.tsx
 msgid "No notification agents configured."
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "No orphaned cross-seeds were found."
 msgstr ""
 
 #: src/components/StorageMetrics/index.tsx
@@ -2750,6 +2837,10 @@ msgstr ""
 
 #: src/components/Common/MediaCard/MediaModal/index.tsx
 msgid "Not excluded from any collection."
+msgstr ""
+
+#: src/components/CrossSeed/crossSeedLabels.tsx
+msgid "Not in any *arr"
 msgstr ""
 
 #: src/components/Common/MediaCard/MediaModal/index.tsx
@@ -2858,6 +2949,18 @@ msgstr ""
 
 #: src/components/Rules/RuleGroup/AddModal/index.tsx
 msgid "Options"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "Original"
+msgstr ""
+
+#: src/components/CrossSeed/crossSeedLabels.tsx
+msgid "Original missing"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Orphans ({orphanCount})"
 msgstr ""
 
 #: src/components/VersionStatus/index.tsx
@@ -3121,6 +3224,15 @@ msgstr ""
 msgid "Rating Descending"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+#: src/components/CrossSeed/CrossSeedTree.tsx
+msgid "Ratio"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "Reason"
+msgstr ""
+
 #: src/components/Common/MediaLibrarySortControl.tsx
 msgid "Recently Added"
 msgstr ""
@@ -3141,6 +3253,10 @@ msgstr ""
 #: src/components/OverlayEditor/LayerPanel.tsx
 #: src/components/OverlayEditor/PropertiesPanel.tsx
 msgid "Rectangle"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Refresh"
 msgstr ""
 
 #: src/components/Settings/Metadata/index.tsx
@@ -3190,8 +3306,13 @@ msgid "Remote"
 msgstr ""
 
 #: src/components/Collection/CollectionDetail/RemoveFromCollectionButton/index.tsx
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
 #: src/components/OverlayEditor/PropertiesPanel.tsx
 msgid "Remove"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "Remove {downloads} ({size}) from the download client?"
 msgstr ""
 
 #: src/components/Collection/CollectionDetail/RemoveFromCollectionButton/index.tsx
@@ -3203,8 +3324,16 @@ msgstr ""
 msgid "Remove from collection"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "Remove orphaned downloads"
+msgstr ""
+
 #: src/components/Rules/Rule/RuleCreator/RuleInput/index.tsx
 msgid "Remove rule {ruleNumber}, section {sectionNumber}"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "Remove selected"
 msgstr ""
 
 #: src/components/Settings/Servarr/ServarrServerCard.tsx
@@ -3228,6 +3357,7 @@ msgid "Removes the related Seerr request immediately. Otherwise, Maintainerr wai
 msgstr ""
 
 #: src/components/Collection/CollectionDetail/RemoveFromCollectionButton/index.tsx
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
 msgid "Removing..."
 msgstr ""
 
@@ -3421,6 +3551,14 @@ msgstr ""
 msgid "Search"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedTree.tsx
+msgid "Search by name, tracker, category or title"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedTree.tsx
+msgid "Search cross-seeds"
+msgstr ""
+
 #: src/components/Collection/CollectionDetail/TestMediaItem/index.tsx
 msgid "Search for media items and validate them against the specified rule. The result will be a YAML document containing the validated steps."
 msgstr ""
@@ -3465,6 +3603,15 @@ msgstr ""
 msgid "secure"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+#: src/components/CrossSeed/CrossSeedTree.tsx
+msgid "Seeding"
+msgstr ""
+
+#: src/components/CrossSeed/crossSeedLabels.tsx
+msgid "Seeding goal met"
+msgstr ""
+
 #: src/components/Settings/Seerr/index.tsx
 msgid "Seerr settings - Maintainerr"
 msgstr ""
@@ -3475,6 +3622,10 @@ msgstr ""
 
 #: src/components/OverlayEditor/PropertiesPanel.tsx
 msgid "Segments"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "Select {name}"
 msgstr ""
 
 #: src/components/Common/ColorPickerModal/index.tsx
@@ -3515,6 +3666,10 @@ msgstr ""
 
 #: src/components/Rules/Rule/RuleCreator/RuleInput/index.tsx
 msgid "Select Action..."
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "Select all orphans"
 msgstr ""
 
 #: src/pages/OverlayTemplateEditorPage.tsx
@@ -3622,6 +3777,10 @@ msgstr ""
 msgid "Set as default"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Set up a download client to see its cross-seeds."
+msgstr ""
+
 #: src/components/Layout/NavBar/index.tsx
 #: src/components/Overlays/index.tsx
 msgid "Settings"
@@ -3719,6 +3878,7 @@ msgid "Signing in…"
 msgstr ""
 
 #: src/components/Collection/CollectionItem/index.tsx
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
 #: src/components/OverlayEditor/PropertiesPanel.tsx
 #: src/components/Settings/Logs/index.tsx
 #: src/components/StorageMetrics/index.tsx
@@ -3735,6 +3895,10 @@ msgstr ""
 
 #: src/components/Rules/Rule/RuleCreator/RuleInput/index.tsx
 msgid "Smaller"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Some *arr histories could not be read: {instances}"
 msgstr ""
 
 #: src/components/Rules/Rule/RuleCreator/index.tsx
@@ -3794,9 +3958,14 @@ msgid "Start typing..."
 msgstr ""
 
 #: src/components/Collection/CollectionItem/index.tsx
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
 #: src/components/Rules/RuleGroup/index.tsx
 #: src/components/StorageMetrics/index.tsx
 msgid "Status"
+msgstr ""
+
+#: src/components/CrossSeed/crossSeedLabels.tsx
+msgid "Still seeding"
 msgstr ""
 
 #: src/pages/RulesListPage.tsx
@@ -4065,6 +4234,22 @@ msgstr ""
 msgid "The {name} tag to apply, created if missing."
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "The cross-seed overview could not be loaded."
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "The cross-seed overview could not be refreshed."
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "The download client could not be read."
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "The downloads could not be removed."
+msgstr ""
+
 #: src/components/Settings/MediaServerSelector/index.tsx
 msgid "The following data will be cleared or reset:"
 msgstr ""
@@ -4088,6 +4273,10 @@ msgstr ""
 #: src/components/Rules/RuleGroup/AddModal/ConfigureNotificationModal/index.tsx
 #: src/components/Settings/Notifications/index.tsx
 msgid "The notification agents could not be loaded."
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedTree.tsx
+msgid "The original download is no longer in the download client."
 msgstr ""
 
 #: src/components/Settings/Telemetry/index.tsx
@@ -4144,6 +4333,14 @@ msgstr ""
 
 #: src/components/Rules/Rule/RuleCreator/RuleInput/index.tsx
 msgid "The user list could not be loaded"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "Their data is deleted with them, except files another remaining download still uses."
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOrphans.tsx
+msgid "Their data stays on disk: deleting downloaded data is turned off in the download client settings."
 msgstr ""
 
 #: src/components/Settings/index.tsx
@@ -4268,6 +4465,10 @@ msgstr ""
 
 #: src/components/OverlayEditor/PropertiesPanel.tsx
 msgid "Transform"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Tree ({groupCount})"
 msgstr ""
 
 #: src/components/Collection/CollectionDetail/TriggerRuleActionButton/index.tsx
@@ -4466,6 +4667,14 @@ msgstr ""
 msgid "Unmonitor/Keep + Unmonitor Empty Show"
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Until every *arr can be read, no download is reported as media removed."
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Updated {generatedAt}."
+msgstr ""
+
 #: src/components/OverlayEditor/ResourceField.tsx
 #: src/components/Rules/Rule/RuleCreator/CommunityRuleUpload/index.tsx
 msgid "Upload"
@@ -4640,6 +4849,10 @@ msgstr ""
 
 #: src/components/Settings/Telemetry/index.tsx
 msgid "What we send"
+msgstr ""
+
+#: src/components/Settings/DownloadClient/index.tsx
+msgid "When a download is removed after its media is deleted, remove its cross-seeds too. Each one follows the same seeding and data rules."
 msgstr ""
 
 #: src/components/Services/useServices.tsx

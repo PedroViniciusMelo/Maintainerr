@@ -8,6 +8,7 @@ import {
   EyeIcon,
   PhotographIcon,
   ServerIcon,
+  ShareIcon,
   XIcon,
 } from '@heroicons/react/outline'
 import { useLingui } from '@lingui/react/macro'
@@ -79,6 +80,13 @@ const NavBar: React.FC<NavBarProps> = ({ open, setClosed }) => {
         svgIcon: <ChartBarIcon className="mr-3 h-6 w-6" />,
         name: t`Storage`,
         matchPattern: /^\/storage-metrics(?:\/.*)?$/,
+      },
+      {
+        key: '8',
+        href: '/cross-seed',
+        svgIcon: <ShareIcon className="mr-3 h-6 w-6" />,
+        name: t`Cross-seed`,
+        matchPattern: /^\/cross-seed(?:\/.*)?$/,
       },
       {
         key: '5',
