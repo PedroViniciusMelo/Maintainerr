@@ -14,6 +14,7 @@ import {
   createDownloadClient,
   DownloadClientConnection,
 } from './download-client.factory';
+import { detectCrossSeedMarkers, groupCrossSeeds } from './cross-seed.grouping';
 import {
   DownloadClient,
   DownloadClientTorrent,
@@ -32,6 +33,23 @@ const FALLBACK_SEEDING_HOURS = 23;
  * trackers have reported (#3678, https://features.maintainerr.info/posts/259).
  */
 const FALLBACK_MAX_SEEDING_DAYS = 14;
+
+/**
+ * How many downloads use each content path, so data shared by another
+ * download is never deleted out from under it.
+ */
+const countContentPaths = (
+  torrents: DownloadClientTorrent[],
+): Map<string, number> => {
+  const counts = new Map<string, number>();
+  for (const torrent of torrents) {
+    const path = torrent.content_path?.trim();
+    if (path) {
+      counts.set(path, (counts.get(path) ?? 0) + 1);
+    }
+  }
+  return counts;
+};
 
 /**
  * Talks to the configured download client to clean up completed downloads for
@@ -114,6 +132,10 @@ export class DownloadClientApiService {
    * Cross-seed protection (inspired by qbit_manage): when deleting data, a
    * download whose content path is shared by another download is removed
    * entry-only (data kept), so cross-seeded downloads keep working.
+   *
+   * With "remove cross-seeds" on, the cross-seeds of each removed download go
+   * with it, each under the same seeding-goal and delete-data rules; they are
+   * removed first, so the last download of a shared path takes the data.
    */
   public async removeDownloads(downloadIds: string[]): Promise<void> {
     if (!this.api || downloadIds.length === 0) {
@@ -122,20 +144,27 @@ export class DownloadClientApiService {
 
     const fallbackRatio = this.settings.download_client_fallback_ratio ?? 0.5;
     const deleteData = this.settings.download_client_delete_data ?? true;
+    const removeCrossSeeds =
+      this.settings.download_client_remove_cross_seeds === true;
 
-    // Only needed when we'd delete data; one list read, reused for every hash.
-    const contentPathCounts = deleteData
-      ? await this.getContentPathCounts()
-      : null;
+    const hashes = [
+      ...new Set(
+        downloadIds
+          .map((downloadId) => downloadId?.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ];
 
-    const seen = new Set<string>();
-    for (const downloadId of downloadIds) {
-      const hash = downloadId?.trim().toLowerCase();
-      if (!hash || seen.has(hash)) {
-        continue;
-      }
-      seen.add(hash);
+    // One list read, reused for every hash. Only needed to protect shared
+    // data, or to find the cross-seeds to remove along with each download.
+    const torrents =
+      deleteData || removeCrossSeeds ? await this.readAllTorrents() : [];
+    const contentPathCounts = countContentPaths(torrents);
+    const crossSeedsByOriginal = removeCrossSeeds
+      ? await this.findCrossSeeds(torrents, new Set(hashes))
+      : new Map<string, DownloadClientTorrent[]>();
 
+    for (const hash of hashes) {
       try {
         const torrent = await this.api.getTorrentByHash(hash);
         if (!torrent) {
@@ -145,33 +174,23 @@ export class DownloadClientApiService {
         }
 
         if (!this.shouldRemove(torrent, fallbackRatio)) {
-          this.logger.log(
-            torrent.reachedSeedingGoal === false
-              ? `Keeping download '${torrent.name}' seeding: its download-client seeding goal isn't met yet`
-              : `Keeping download '${torrent.name}' seeding: the download client enforces no limit, and at ratio ${torrent.ratio} after ${(torrent.seedingTime / 3600).toFixed(1)}h it meets neither fallback (ratio ${fallbackRatio} after ${FALLBACK_SEEDING_HOURS}h, or ${FALLBACK_MAX_SEEDING_DAYS} days at any ratio). This check only runs when media is deleted.`,
-          );
+          // Its cross-seeds stay too: they still share data with it.
+          this.logKeep(torrent, fallbackRatio);
           continue;
         }
 
-        const isCrossSeeded =
-          deleteData &&
-          !!torrent.content_path &&
-          (contentPathCounts?.get(torrent.content_path) ?? 0) > 1;
-        const deleteDataForThis = deleteData && !isCrossSeeded;
-
-        await this.api.deleteTorrents([hash], deleteDataForThis);
-
-        if (isCrossSeeded) {
-          this.logger.log(
-            `Removed download '${torrent.name}' but kept its data: another download is cross-seeding the same files (${torrent.content_path})`,
-          );
-        } else {
-          this.logger.log(
-            `Removed download '${torrent.name}' from the download client${
-              deleteDataForThis ? ' (including downloaded data)' : ''
-            }`,
+        for (const crossSeed of crossSeedsByOriginal.get(hash) ?? []) {
+          await this.removeCrossSeed(
+            crossSeed,
+            torrent,
+            hashes,
+            fallbackRatio,
+            deleteData,
+            contentPathCounts,
           );
         }
+
+        await this.removeOne(hash, torrent, deleteData, contentPathCounts);
       } catch (error) {
         this.logger.warn(
           `Failed to remove download with hash ${hash} from the download client`,
@@ -181,29 +200,142 @@ export class DownloadClientApiService {
     }
   }
 
-  /**
-   * Count how many downloads share each content path, so cross-seeded data is
-   * never deleted out from under another download. Best-effort: on failure we
-   * return an empty map and fall back to the user's delete-data setting.
-   */
-  private async getContentPathCounts(): Promise<Map<string, number>> {
-    const counts = new Map<string, number>();
+  private async removeCrossSeed(
+    crossSeed: DownloadClientTorrent,
+    original: DownloadClientTorrent,
+    requested: string[],
+    fallbackRatio: number,
+    deleteData: boolean,
+    contentPathCounts: Map<string, number>,
+  ): Promise<void> {
+    const hash = crossSeed.hash.toLowerCase();
+    // A cross-seed an *arr asked to remove as well is handled on its own turn.
+    if (requested.includes(hash)) {
+      return;
+    }
+    if (!this.shouldRemove(crossSeed, fallbackRatio)) {
+      this.logger.log(
+        `Keeping cross-seed '${crossSeed.name}' of '${original.name}' seeding: its seeding goal isn't met yet`,
+      );
+      return;
+    }
     try {
-      const torrents = (await this.api?.getTorrents()) ?? [];
-      for (const torrent of torrents) {
-        const path = torrent.content_path?.trim();
-        if (!path) {
-          continue;
-        }
-        counts.set(path, (counts.get(path) ?? 0) + 1);
-      }
+      await this.removeOne(
+        hash,
+        crossSeed,
+        deleteData,
+        contentPathCounts,
+        `cross-seed '${crossSeed.name}' of '${original.name}'`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Failed to remove cross-seed '${crossSeed.name}' of '${original.name}' from the download client`,
+      );
+      this.logger.debug(error);
+    }
+  }
+
+  /**
+   * Remove one download. Its data is deleted only with the delete-data setting
+   * and only when no other download still uses the same content path; the
+   * count is lowered afterwards, so the last download of a path takes the data.
+   */
+  private async removeOne(
+    hash: string,
+    torrent: DownloadClientTorrent,
+    deleteData: boolean,
+    contentPathCounts: Map<string, number>,
+    label = `download '${torrent.name}'`,
+  ): Promise<void> {
+    const path = torrent.content_path?.trim();
+    const isCrossSeeded =
+      deleteData && !!path && (contentPathCounts.get(path) ?? 0) > 1;
+    const deleteDataForThis = deleteData && !isCrossSeeded;
+
+    await this.api.deleteTorrents([hash], deleteDataForThis);
+
+    if (path && contentPathCounts.has(path)) {
+      contentPathCounts.set(path, contentPathCounts.get(path) - 1);
+    }
+
+    if (isCrossSeeded) {
+      this.logger.log(
+        `Removed ${label} but kept its data: another download is cross-seeding the same files (${torrent.content_path})`,
+      );
+    } else {
+      this.logger.log(
+        `Removed ${label} from the download client${
+          deleteDataForThis ? ' (including downloaded data)' : ''
+        }`,
+      );
+    }
+  }
+
+  private logKeep(torrent: DownloadClientTorrent, fallbackRatio: number) {
+    this.logger.log(
+      torrent.reachedSeedingGoal === false
+        ? `Keeping download '${torrent.name}' seeding: its download-client seeding goal isn't met yet`
+        : `Keeping download '${torrent.name}' seeding: the download client enforces no limit, and at ratio ${torrent.ratio} after ${(torrent.seedingTime / 3600).toFixed(1)}h it meets neither fallback (ratio ${fallbackRatio} after ${FALLBACK_SEEDING_HOURS}h, or ${FALLBACK_MAX_SEEDING_DAYS} days at any ratio). This check only runs when media is deleted.`,
+    );
+  }
+
+  /**
+   * Every download in the client, for cross-seed detection. Best-effort: on
+   * failure we return an empty list and fall back to the user's delete-data
+   * setting (and remove no cross-seeds).
+   */
+  private async readAllTorrents(): Promise<DownloadClientTorrent[]> {
+    try {
+      return (await this.api?.getTorrents()) ?? [];
     } catch (error) {
       this.logger.warn(
         'Could not read the download list for cross-seed detection; proceeding with the configured delete-data setting',
       );
       this.logger.debug(error);
+      return [];
     }
-    return counts;
+  }
+
+  /**
+   * The cross-seeds of each download about to be removed, found the same way
+   * as the cross-seed view: by the installation's cross-seed tag/category,
+   * shared path, name and size, or files.
+   */
+  private async findCrossSeeds(
+    torrents: DownloadClientTorrent[],
+    originals: Set<string>,
+  ): Promise<Map<string, DownloadClientTorrent[]>> {
+    const result = new Map<string, DownloadClientTorrent[]>();
+    if (torrents.length === 0) {
+      return result;
+    }
+    try {
+      const isOriginal = (torrent: DownloadClientTorrent) =>
+        originals.has(torrent.hash.toLowerCase());
+      const groups = await groupCrossSeeds({
+        torrents,
+        isMarked: detectCrossSeedMarkers(torrents).isMarked,
+        isArrLinked: isOriginal,
+        loadFiles: (hash) => this.api.getTorrentFiles(hash),
+        // Only the downloads being removed matter here; skip file reads for
+        // unrelated groups.
+        isRelevant: isOriginal,
+      });
+      for (const group of groups) {
+        if (group.original && isOriginal(group.original)) {
+          result.set(
+            group.original.hash.toLowerCase(),
+            group.crossSeeds.map(({ torrent }) => torrent),
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.warn(
+        'Could not work out the cross-seeds of the removed downloads; removing only the downloads themselves',
+      );
+      this.logger.debug(error);
+    }
+    return result;
   }
 
   /**

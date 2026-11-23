@@ -2,7 +2,7 @@ import { CrossSeedDetection } from '@maintainerr/contracts';
 import {
   DownloadClientFile,
   DownloadClientTorrent,
-} from '../api/download-client-api/download-client.interface';
+} from './download-client.interface';
 
 /**
  * Two downloads of the same release differ by at most this share of their
@@ -29,6 +29,12 @@ export interface CrossSeedGroupingInput {
   isArrLinked: (torrent: DownloadClientTorrent) => boolean;
   /** The download's files, or undefined when they could not be read. */
   loadFiles: (hash: string) => Promise<DownloadClientFile[] | undefined>;
+  /**
+   * When set, files are only compared to match a download against one this
+   * returns true for. Callers that care about a few downloads use it to skip
+   * file reads for every unrelated group.
+   */
+  isRelevant?: (torrent: DownloadClientTorrent) => boolean;
 }
 
 export interface GroupedCrossSeed {
@@ -40,6 +46,56 @@ export interface TorrentGroup {
   original: DownloadClientTorrent | null;
   crossSeeds: GroupedCrossSeed[];
 }
+
+/**
+ * Whether a tag or category is one cross-seed sets. cross-seed's default tag
+ * is `cross-seed` and its duplicated categories end in `.cross-seed`; matching
+ * on the letters alone also accepts `crossseed`, `cross_seed`, `Cross-Seed`...
+ */
+export const isCrossSeedMarker = (value: string): boolean => {
+  let letters = '';
+  for (const char of value.toLowerCase()) {
+    const code = char.charCodeAt(0);
+    if ((code >= 97 && code <= 122) || (code >= 48 && code <= 57)) {
+      letters += char;
+    }
+  }
+  return letters.includes('crossseed');
+};
+
+export interface CrossSeedMarkers {
+  tags: string[];
+  categories: string[];
+  isMarked: (torrent: DownloadClientTorrent) => boolean;
+}
+
+/**
+ * The cross-seed tags and categories this installation actually uses, read
+ * from the downloads themselves, so no tag has to be configured.
+ */
+export const detectCrossSeedMarkers = (
+  torrents: DownloadClientTorrent[],
+): CrossSeedMarkers => {
+  const tags = new Set<string>();
+  const categories = new Set<string>();
+  for (const torrent of torrents) {
+    for (const tag of torrent.tags ?? []) {
+      if (isCrossSeedMarker(tag)) {
+        tags.add(tag);
+      }
+    }
+    if (torrent.category && isCrossSeedMarker(torrent.category)) {
+      categories.add(torrent.category);
+    }
+  }
+  return {
+    tags: [...tags].sort(),
+    categories: [...categories].sort(),
+    isMarked: (torrent) =>
+      (torrent.tags ?? []).some((tag) => tags.has(tag)) ||
+      (!!torrent.category && categories.has(torrent.category)),
+  };
+};
 
 /** Trailing separators would make the same folder look like two paths. */
 export const normalizeContentPath = (path: string | undefined): string => {
@@ -154,6 +210,7 @@ export const groupCrossSeeds = async ({
   isMarked,
   isArrLinked,
   loadFiles,
+  isRelevant = () => true,
 }: CrossSeedGroupingInput): Promise<TorrentGroup[]> => {
   const sets = new UnionFind(torrents.length);
   const marked = torrents.map((torrent) => isMarked(torrent));
@@ -221,7 +278,11 @@ export const groupCrossSeeds = async ({
     }
     const size = sizeOf(torrents[index]);
     const candidates = unmarkedIndexes
-      .filter((other) => sizesClose(size, sizeOf(torrents[other])))
+      .filter(
+        (other) =>
+          isRelevant(torrents[other]) &&
+          sizesClose(size, sizeOf(torrents[other])),
+      )
       .sort(
         (a, b) =>
           Math.abs(sizeOf(torrents[a]) - size) -
@@ -246,7 +307,11 @@ export const groupCrossSeeds = async ({
     }
   }
   for (const bucket of bySize.values()) {
-    if (bucket.length < 2 || bucket.length > INFERRED_MAX_BUCKET) {
+    if (
+      bucket.length < 2 ||
+      bucket.length > INFERRED_MAX_BUCKET ||
+      !bucket.some((index) => isRelevant(torrents[index]))
+    ) {
       continue;
     }
     for (let a = 0; a < bucket.length; a += 1) {

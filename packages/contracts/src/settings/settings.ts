@@ -73,6 +73,7 @@ export const settingsUpdateSchema = z.object({
   download_client_password: z.string().optional(),
   download_client_delete_data: z.boolean().optional(),
   download_client_fallback_ratio: z.number().min(0.5).optional(),
+  download_client_remove_cross_seeds: z.boolean().optional(),
 
   collection_handler_job_cron: z.string().trim().optional(),
   rules_handler_job_cron: z.string().trim().optional(),

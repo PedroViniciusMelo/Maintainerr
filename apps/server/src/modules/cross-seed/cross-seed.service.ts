@@ -22,29 +22,14 @@ import {
   ArrDownloadIndexService,
 } from './arr-download-index.service';
 import {
+  detectCrossSeedMarkers,
   groupCrossSeeds,
   normalizeContentPath,
   TorrentGroup,
-} from './cross-seed.grouping';
+} from '../api/download-client-api/cross-seed.grouping';
 
 /** File lists never change for a hash; keep this many between page loads. */
 const FILES_CACHE_LIMIT = 5000;
-
-/**
- * Whether a tag or category is one cross-seed sets. cross-seed's default tag
- * is `cross-seed` and its duplicated categories end in `.cross-seed`; matching
- * on the letters alone also accepts `crossseed`, `cross_seed`, `Cross-Seed`...
- */
-export const isCrossSeedMarker = (value: string): boolean => {
-  let letters = '';
-  for (const char of value.toLowerCase()) {
-    const code = char.charCodeAt(0);
-    if ((code >= 97 && code <= 122) || (code >= 48 && code <= 57)) {
-      letters += char;
-    }
-  }
-  return letters.includes('crossseed');
-};
 
 /**
  * The category a download would have without cross-seed's suffix, so a
@@ -262,21 +247,7 @@ export class CrossSeedService {
       this.arrIndex.getIndex(refresh),
     ]);
 
-    const markerTags = new Set<string>();
-    const markerCategories = new Set<string>();
-    for (const torrent of torrents) {
-      for (const tag of torrent.tags ?? []) {
-        if (isCrossSeedMarker(tag)) {
-          markerTags.add(tag);
-        }
-      }
-      if (torrent.category && isCrossSeedMarker(torrent.category)) {
-        markerCategories.add(torrent.category);
-      }
-    }
-    const isMarked = (torrent: DownloadClientTorrent) =>
-      (torrent.tags ?? []).some((tag) => markerTags.has(tag)) ||
-      (!!torrent.category && markerCategories.has(torrent.category));
+    const markers = detectCrossSeedMarkers(torrents);
     const linksOf = (torrent: DownloadClientTorrent) =>
       index.links.get(torrent.hash.toLowerCase()) ?? [];
 
@@ -292,7 +263,7 @@ export class CrossSeedService {
 
     const groups = await groupCrossSeeds({
       torrents,
-      isMarked,
+      isMarked: markers.isMarked,
       isArrLinked: (torrent) => linksOf(torrent).length > 0,
       loadFiles: (hash) => this.loadFiles(hash),
     });
@@ -306,10 +277,7 @@ export class CrossSeedService {
       torrents,
       index,
       groups: analyzed,
-      markers: {
-        tags: [...markerTags].sort(),
-        categories: [...markerCategories].sort(),
-      },
+      markers: { tags: markers.tags, categories: markers.categories },
       arrCategories: [...arrCategories].sort(),
     };
   }

@@ -521,6 +521,7 @@ export class SettingsOperationsService {
         download_client_password: null,
         download_client_delete_data: true,
         download_client_fallback_ratio: 0.5,
+        download_client_remove_cross_seeds: false,
       });
 
       await this.settingsDataService.init();
@@ -548,6 +549,8 @@ export class SettingsOperationsService {
         download_client_password: settings.download_client_password || null,
         download_client_delete_data: settings.download_client_delete_data,
         download_client_fallback_ratio: settings.download_client_fallback_ratio,
+        download_client_remove_cross_seeds:
+          settings.download_client_remove_cross_seeds,
       });
 
       await this.settingsDataService.init();

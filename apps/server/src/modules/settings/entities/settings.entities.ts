@@ -148,6 +148,10 @@ export class Settings implements SettingDto {
   @Column({ type: 'float', nullable: false, default: 0.5 })
   download_client_fallback_ratio: number;
 
+  // Also remove the cross-seeds of a download removed after a media delete.
+  @Column({ type: 'boolean', nullable: false, default: false })
+  download_client_remove_cross_seeds: boolean;
+
   @Column({ nullable: false, default: CronExpression.EVERY_12_HOURS })
   collection_handler_job_cron: string;
 

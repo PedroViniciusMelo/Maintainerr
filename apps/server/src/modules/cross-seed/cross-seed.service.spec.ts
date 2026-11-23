@@ -9,7 +9,8 @@ import {
   ArrDownloadIndexService,
   IndexedArrLink,
 } from './arr-download-index.service';
-import { CrossSeedService, isCrossSeedMarker } from './cross-seed.service';
+import { isCrossSeedMarker } from '../api/download-client-api/cross-seed.grouping';
+import { CrossSeedService } from './cross-seed.service';
 
 const GB = 1024 * 1024 * 1024;
 
@@ -92,7 +93,7 @@ describe('CrossSeedService', () => {
       getTorrentFiles: jest.fn().mockResolvedValue([]),
       deleteTorrents: jest.fn().mockResolvedValue(undefined),
     };
-    downloadClient.api = api;
+    Object.assign(downloadClient, { api });
     downloadClient.isDoneSeeding.mockImplementation(
       (t: DownloadClientTorrent) => t.reachedSeedingGoal !== false,
     );
@@ -101,7 +102,7 @@ describe('CrossSeedService', () => {
 
   describe('getOverview', () => {
     it('reports an unconfigured download client without reading anything', async () => {
-      downloadClient.api = undefined;
+      Object.assign(downloadClient, { api: undefined });
 
       const overview = await service.getOverview();
 

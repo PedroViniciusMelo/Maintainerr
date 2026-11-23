@@ -83,6 +83,8 @@ export class SettingDto {
 
   download_client_fallback_ratio: number;
 
+  download_client_remove_cross_seeds: boolean;
+
   collection_handler_job_cron: string;
 
   rules_handler_job_cron: string;

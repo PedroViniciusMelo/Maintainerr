@@ -88,6 +88,7 @@ export interface ISettings {
   download_client_password?: string
   download_client_delete_data?: boolean
   download_client_fallback_ratio?: number
+  download_client_remove_cross_seeds?: boolean
   collection_handler_job_cron: string
   rules_handler_job_cron: string
   metadata_provider_preference?: MetadataProviderPreference

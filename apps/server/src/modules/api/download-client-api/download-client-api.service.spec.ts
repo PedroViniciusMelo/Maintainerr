@@ -8,6 +8,7 @@ const apiMock = {
   getVersion: jest.fn(),
   getTorrents: jest.fn(),
   getTorrentByHash: jest.fn(),
+  getTorrentFiles: jest.fn(),
   deleteTorrents: jest.fn(),
 };
 
@@ -39,6 +40,7 @@ describe('DownloadClientApiService', () => {
     apiMock.getTorrents.mockReset();
     apiMock.getTorrentByHash.mockReset();
     apiMock.deleteTorrents.mockReset();
+    apiMock.getTorrentFiles.mockReset();
 
     const { unit, unitRef } = await TestBed.solitary(
       DownloadClientApiService,
@@ -102,6 +104,7 @@ describe('DownloadClientApiService', () => {
         download_client_password: 'pw',
         download_client_delete_data: true,
         download_client_fallback_ratio: 0.5,
+        download_client_remove_cross_seeds: false,
       });
       service.init();
     });
@@ -216,6 +219,89 @@ describe('DownloadClientApiService', () => {
       await service.removeDownloads(['abc']);
 
       expect(apiMock.deleteTorrents).toHaveBeenCalledWith(['abc'], false);
+    });
+
+    describe('with remove cross-seeds on', () => {
+      const original = torrent({
+        hash: 'abc',
+        name: 'Release',
+        size: 4e9,
+        content_path: '/downloads/Release',
+        reachedSeedingGoal: true,
+      });
+      // Hardlinked cross-seed: same name and size, its own path.
+      const linked = torrent({
+        hash: 'def',
+        name: 'Release',
+        size: 4e9,
+        content_path: '/links/b/Release',
+        tags: ['cross-seed'],
+        reachedSeedingGoal: true,
+      });
+
+      beforeEach(() => {
+        Object.assign(settings, { download_client_remove_cross_seeds: true });
+        apiMock.getTorrentByHash.mockResolvedValue(original);
+      });
+
+      it('removes the cross-seeds of a removed download, each with its own data', async () => {
+        apiMock.getTorrents.mockResolvedValue([original, linked]);
+
+        await service.removeDownloads(['abc']);
+
+        expect(apiMock.deleteTorrents.mock.calls).toEqual([
+          [['def'], true],
+          [['abc'], true],
+        ]);
+      });
+
+      it('removes a shared-path cross-seed first, so the original takes the data', async () => {
+        const sharedPath = { ...linked, content_path: original.content_path };
+        apiMock.getTorrents.mockResolvedValue([original, sharedPath]);
+
+        await service.removeDownloads(['abc']);
+
+        expect(apiMock.deleteTorrents.mock.calls).toEqual([
+          [['def'], false],
+          [['abc'], true],
+        ]);
+      });
+
+      it('keeps a cross-seed whose seeding goal is not met, and the shared data with it', async () => {
+        apiMock.getTorrents.mockResolvedValue([
+          original,
+          {
+            ...linked,
+            content_path: original.content_path,
+            reachedSeedingGoal: false,
+          },
+        ]);
+
+        await service.removeDownloads(['abc']);
+
+        expect(apiMock.deleteTorrents.mock.calls).toEqual([[['abc'], false]]);
+      });
+
+      it('leaves the cross-seeds alone while the original keeps seeding', async () => {
+        apiMock.getTorrentByHash.mockResolvedValue({
+          ...original,
+          reachedSeedingGoal: false,
+        });
+        apiMock.getTorrents.mockResolvedValue([original, linked]);
+
+        await service.removeDownloads(['abc']);
+
+        expect(apiMock.deleteTorrents).not.toHaveBeenCalled();
+      });
+
+      it('removes no cross-seeds when the option is off', async () => {
+        Object.assign(settings, { download_client_remove_cross_seeds: false });
+        apiMock.getTorrents.mockResolvedValue([original, linked]);
+
+        await service.removeDownloads(['abc']);
+
+        expect(apiMock.deleteTorrents.mock.calls).toEqual([[['abc'], true]]);
+      });
     });
   });
 });

@@ -1,7 +1,7 @@
 import {
   DownloadClientFile,
   DownloadClientTorrent,
-} from '../api/download-client-api/download-client.interface';
+} from './download-client.interface';
 import { filesMatch, groupCrossSeeds } from './cross-seed.grouping';
 
 const GB = 1024 * 1024 * 1024;

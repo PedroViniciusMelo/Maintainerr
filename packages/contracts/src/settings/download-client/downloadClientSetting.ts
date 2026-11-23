@@ -21,6 +21,10 @@ export const downloadClientSettingSchema = z.object({
   // own ratio/seed-time limits. This fallback ratio only applies when the client
   // enforces no limit of its own, and may not be set below 0.5.
   download_client_fallback_ratio: z.number().min(0.5),
+  // Also remove the cross-seeds of a download removed after a media delete,
+  // under the same seeding-goal and delete-data rules. Optional so an older
+  // client that does not send it keeps the feature off.
+  download_client_remove_cross_seeds: z.boolean().optional().default(false),
 })
 
 export type DownloadClientSetting = z.infer<typeof downloadClientSettingSchema>

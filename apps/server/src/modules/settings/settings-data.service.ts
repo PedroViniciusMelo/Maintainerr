@@ -125,6 +125,8 @@ export class SettingsDataService implements SettingDto {
 
   download_client_fallback_ratio: number;
 
+  download_client_remove_cross_seeds: boolean;
+
   collection_handler_job_cron: string;
 
   rules_handler_job_cron: string;
@@ -196,6 +198,8 @@ export class SettingsDataService implements SettingDto {
         settingsDb?.download_client_delete_data ?? true;
       this.download_client_fallback_ratio =
         settingsDb?.download_client_fallback_ratio ?? 0.5;
+      this.download_client_remove_cross_seeds =
+        settingsDb?.download_client_remove_cross_seeds ?? false;
       this.collection_handler_job_cron =
         settingsDb?.collection_handler_job_cron;
       this.rules_handler_job_cron = settingsDb?.rules_handler_job_cron;

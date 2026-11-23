@@ -104,10 +104,26 @@ describe('DownloadClientSettings', () => {
         download_client_username: 'admin',
         download_client_password: 'secret',
         download_client_delete_data: true,
+        download_client_remove_cross_seeds: false,
         download_client_fallback_ratio: 0.5,
       })
     })
     expect(showUpdated).toHaveBeenCalled()
+  })
+
+  it('saves the remove cross-seeds option when it is turned on', async () => {
+    saveSettingsMock.mockResolvedValue({ status: 'OK', code: 1 })
+
+    render(<DownloadClientSettings />)
+
+    fireEvent.click(await screen.findByLabelText('Also remove cross-seeds'))
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+
+    await waitFor(() => {
+      expect(saveSettingsMock).toHaveBeenCalledWith(
+        expect.objectContaining({ download_client_remove_cross_seeds: true }),
+      )
+    })
   })
 
   it('surfaces backend save failures instead of showing success', async () => {

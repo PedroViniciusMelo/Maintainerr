@@ -39,6 +39,7 @@ interface DownloadClientFormValues {
   download_client_username: string
   download_client_password: string
   download_client_delete_data: boolean
+  download_client_remove_cross_seeds: boolean
   // Fallback ratio used only when the client enforces no limit of its own.
   download_client_fallback_ratio: string
 }
@@ -51,6 +52,7 @@ const emptyValues: DownloadClientFormValues = {
   download_client_username: '',
   download_client_password: '',
   download_client_delete_data: true,
+  download_client_remove_cross_seeds: false,
   download_client_fallback_ratio: FALLBACK_RATIO_DEFAULT,
 }
 
@@ -86,6 +88,8 @@ const DownloadClientForm = () => {
           downloadClientData.download_client_password ?? '',
         download_client_delete_data:
           downloadClientData.download_client_delete_data,
+        download_client_remove_cross_seeds:
+          downloadClientData.download_client_remove_cross_seeds ?? false,
         download_client_fallback_ratio:
           downloadClientData.download_client_fallback_ratio != null
             ? String(downloadClientData.download_client_fallback_ratio)
@@ -186,6 +190,8 @@ const DownloadClientForm = () => {
       download_client_username: values.download_client_username,
       download_client_password: values.download_client_password,
       download_client_delete_data: values.download_client_delete_data,
+      download_client_remove_cross_seeds:
+        values.download_client_remove_cross_seeds,
       download_client_fallback_ratio: fallbackRatio,
     }
 
@@ -481,6 +487,23 @@ const DownloadClientForm = () => {
                     id="download_client_delete_data"
                     label={t`Delete downloaded data`}
                     helpText={t`Turn off if you cross-seed.`}
+                    checked={field.value}
+                    onChange={(event) => {
+                      clear()
+                      field.onChange(event.target.checked)
+                    }}
+                  />
+                )}
+              />
+
+              <Controller
+                name="download_client_remove_cross_seeds"
+                control={control}
+                render={({ field }) => (
+                  <CheckboxGroup
+                    id="download_client_remove_cross_seeds"
+                    label={t`Also remove cross-seeds`}
+                    helpText={t`When a download is removed after its media is deleted, remove its cross-seeds too. Each one follows the same seeding and data rules.`}
                     checked={field.value}
                     onChange={(event) => {
                       clear()
