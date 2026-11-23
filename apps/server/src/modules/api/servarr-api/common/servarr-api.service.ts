@@ -5,7 +5,9 @@ import { MaintainerrLogger } from '../../../logging/logs.service';
 import cacheManager from '../../lib/cache';
 import { NO_TIMEOUT, SLOW_INSTANCE_TIMEOUT_MS } from '../../lib/httpTimeouts';
 import {
+  ArrDownloadLink,
   DiskSpaceResource,
+  HistoryPage,
   HistoryRecord,
   QueueItem,
   QueueResponse,
@@ -13,6 +15,16 @@ import {
   SystemStatus,
   Tag,
 } from '../interfaces/servarr.interface';
+
+/** Page size for walking the full history; the *arr APIs accept large pages. */
+const HISTORY_PAGE_SIZE = 1000;
+/** Stop after this many pages rather than walk an unbounded history forever. */
+const HISTORY_MAX_PAGES = 500;
+/**
+ * Radarr and Sonarr share these numeric history event types:
+ * 1 = grabbed, 3 = downloadFolderImported.
+ */
+const DOWNLOAD_EVENT_TYPES = [1, 3];
 
 export abstract class ServarrApi<QueueItemAppendT> extends ExternalApiService {
   static buildUrl(settings: DVRSettings, path?: string): string {
@@ -227,6 +239,55 @@ export abstract class ServarrApi<QueueItemAppendT> extends ExternalApiService {
     return (
       record.downloadId?.trim() || record.data?.torrentInfoHash?.trim()
     )?.toLowerCase();
+  }
+
+  /**
+   * Walk the whole paged /history for download-producing events and describe
+   * the media behind each hash. Returns undefined when any page fails, so a
+   * partial read is never mistaken for "these downloads back nothing".
+   * The *arr purges a movie's / series' history when it is removed, so a
+   * hash missing from this list no longer backs media in this instance.
+   */
+  protected async collectDownloadLinks<RecordT extends HistoryRecord>(
+    includeQuery: string,
+    describe: (record: RecordT) => Omit<ArrDownloadLink, 'hash'>,
+  ): Promise<ArrDownloadLink[] | undefined> {
+    const eventTypes = DOWNLOAD_EVENT_TYPES.map(
+      (type) => `&eventType=${type}`,
+    ).join('');
+    const links: ArrDownloadLink[] = [];
+
+    for (let page = 1; page <= HISTORY_MAX_PAGES; page += 1) {
+      // Newest first: records added while paging push older ones down a page,
+      // which re-reads a record rather than skipping one.
+      const response = await this.getWithoutCache<HistoryPage<RecordT>>(
+        `/history?page=${page}&pageSize=${HISTORY_PAGE_SIZE}&sortKey=date&sortDirection=descending${eventTypes}${includeQuery}`,
+        { timeout: SLOW_INSTANCE_TIMEOUT_MS },
+      );
+      if (!response || !Array.isArray(response.records)) {
+        this.logger.warn('Failed to read the download history');
+        return undefined;
+      }
+
+      for (const record of response.records) {
+        const hash = this.downloadProducingHash(record);
+        if (hash) {
+          links.push({ hash, ...describe(record) });
+        }
+      }
+
+      if (
+        response.records.length < HISTORY_PAGE_SIZE ||
+        page * HISTORY_PAGE_SIZE >= (response.totalRecords ?? 0)
+      ) {
+        return links;
+      }
+    }
+
+    this.logger.warn(
+      `The download history is longer than ${HISTORY_MAX_PAGES * HISTORY_PAGE_SIZE} records; not reading further`,
+    );
+    return undefined;
   }
 
   /**

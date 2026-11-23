@@ -4,6 +4,10 @@ import { MaintainerrLogger } from '../../../logging/logs.service';
 import { SLOW_INSTANCE_TIMEOUT_MS } from '../../lib/httpTimeouts';
 import { ServarrApi } from '../common/servarr-api.service';
 import {
+  ArrDownloadLink,
+  HistoryRecord,
+} from '../interfaces/servarr.interface';
+import {
   DownloadHistoryItem,
   SonarrEpisode,
   SonarrEpisodeFile,
@@ -370,6 +374,28 @@ export class SonarrApi extends ServarrApi<{
     }
 
     return items;
+  }
+
+  /**
+   * Every torrent this Sonarr grabbed or imported, with the episode it backs
+   * (a season pack yields one link per episode). Undefined when the history
+   * could not be read in full.
+   */
+  public async getDownloadLinks(): Promise<ArrDownloadLink[] | undefined> {
+    return this.collectDownloadLinks<
+      HistoryRecord & { series?: { title?: string }; episode?: SonarrEpisode }
+    >('&includeSeries=true&includeEpisode=true', (record) => {
+      const episode = record.episode;
+      const code = episode
+        ? ` S${String(episode.seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`
+        : '';
+      return {
+        title: record.series?.title
+          ? `${record.series.title}${code}`
+          : (record.sourceTitle ?? ''),
+        hasFile: episode?.hasFile ?? true,
+      };
+    });
   }
 
   public async deleteShow(

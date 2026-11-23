@@ -124,6 +124,19 @@ export class SportarrApi extends ServarrApi<{
   // Grab history for a league, one row per grab mapping the event to the id a
   // download client uses to remove the backing torrent/nzb. Used to clean the
   // download client after a delete. Uncached so it reflects current state.
+  // undefined = the fetch failed. Unlike getLeagueDownloadHistory, callers
+  // that must tell an outage from "no grabs" (cross-seed orphan detection)
+  // use this one.
+  public async findLeagueDownloadHistory(
+    leagueId: number,
+  ): Promise<SportarrDownloadHistoryItem[] | undefined> {
+    const response = await this.getWithoutCache<SportarrDownloadHistoryItem[]>(
+      `/leagues/${leagueId}/download-history`,
+      { timeout: SLOW_INSTANCE_TIMEOUT_MS },
+    );
+    return Array.isArray(response) ? response : undefined;
+  }
+
   public async getLeagueDownloadHistory(
     leagueId: number,
   ): Promise<SportarrDownloadHistoryItem[]> {

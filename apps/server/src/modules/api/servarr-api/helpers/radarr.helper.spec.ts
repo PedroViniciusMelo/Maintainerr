@@ -372,6 +372,73 @@ describe('RadarrApi', () => {
     });
   });
 
+  describe('getDownloadLinks', () => {
+    const page = (records: unknown[], totalRecords: number) => ({
+      page: 1,
+      pageSize: 1000,
+      totalRecords,
+      records,
+    });
+
+    it('walks every history page and reports whether each movie still has a file', async () => {
+      const first = Array.from({ length: 1000 }, (_, i) => ({
+        id: i,
+        eventType: 'grabbed',
+        downloadId: `HASH${i}`,
+        movie: { title: 'Sample Movie', hasFile: true },
+      }));
+      const get = jest
+        .spyOn(api as any, 'getWithoutCache')
+        .mockResolvedValueOnce(page(first, 1001))
+        .mockResolvedValueOnce(
+          page(
+            [
+              {
+                id: 1000,
+                eventType: 'downloadFolderImported',
+                downloadId: 'LAST',
+                movie: { title: 'Other Movie', hasFile: false },
+              },
+              { id: 1001, eventType: 'downloadFailed', downloadId: 'x' },
+            ],
+            1001,
+          ),
+        );
+
+      const links = await api.getDownloadLinks();
+
+      expect(get).toHaveBeenCalledTimes(2);
+      expect(String(get.mock.calls[1][0])).toContain('page=2');
+      expect(String(get.mock.calls[0][0])).toContain(
+        'eventType=1&eventType=3&includeMovie=true',
+      );
+      expect(links).toHaveLength(1001);
+      expect(links?.[1000]).toEqual({
+        hash: 'last',
+        title: 'Other Movie',
+        hasFile: false,
+      });
+    });
+
+    it('returns undefined, not a partial list, when a page fails', async () => {
+      jest
+        .spyOn(api as any, 'getWithoutCache')
+        .mockResolvedValueOnce(
+          page(
+            Array.from({ length: 1000 }, (_, i) => ({
+              id: i,
+              eventType: 'grabbed',
+              downloadId: `h${i}`,
+            })),
+            5000,
+          ),
+        )
+        .mockResolvedValueOnce(undefined);
+
+      await expect(api.getDownloadLinks()).resolves.toBeUndefined();
+    });
+  });
+
   describe('setMovieTags', () => {
     it('adds a tag to a batch of movies via the movie editor', async () => {
       const runPut = jest.spyOn(api as any, 'runPut').mockResolvedValue(true);

@@ -81,6 +81,26 @@ export interface HistoryRecord {
   downloadId?: string;
   episodeId?: number;
   data?: Record<string, string>;
+  sourceTitle?: string;
+}
+
+/**
+ * A download-client item (torrent infohash) an *arr grabbed or imported, and
+ * the media it backs. `hasFile` is whether that media still has a file in the
+ * *arr; it reads true when the *arr did not say, so an unknown never makes a
+ * download look abandoned.
+ */
+export interface ArrDownloadLink {
+  hash: string;
+  title: string;
+  hasFile: boolean;
+}
+
+export interface HistoryPage<RecordT extends HistoryRecord = HistoryRecord> {
+  page: number;
+  pageSize: number;
+  totalRecords: number;
+  records: RecordT[];
 }
 
 export interface QueueResponse<QueueItemAppendT> {

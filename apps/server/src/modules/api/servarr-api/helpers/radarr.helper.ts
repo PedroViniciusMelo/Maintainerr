@@ -4,6 +4,10 @@ import { MaintainerrLogger } from '../../../logging/logs.service';
 import { SLOW_INSTANCE_TIMEOUT_MS } from '../../lib/httpTimeouts';
 import { ServarrApi } from '../common/servarr-api.service';
 import {
+  ArrDownloadLink,
+  HistoryRecord,
+} from '../interfaces/servarr.interface';
+import {
   RadarrImportListExclusion,
   RadarrInfo,
   RadarrMovie,
@@ -122,6 +126,20 @@ export class RadarrApi extends ServarrApi<{ movieId: number }> {
    */
   public async getDownloadIdsForMovie(movieId: number): Promise<string[]> {
     return this.getDownloadIdsFromHistory(`/history/movie?movieId=${movieId}`);
+  }
+
+  /**
+   * Every torrent this Radarr grabbed or imported, with the movie it backs.
+   * Undefined when the history could not be read in full.
+   */
+  public async getDownloadLinks(): Promise<ArrDownloadLink[] | undefined> {
+    return this.collectDownloadLinks<HistoryRecord & { movie?: RadarrMovie }>(
+      '&includeMovie=true',
+      (record) => ({
+        title: record.movie?.title ?? record.sourceTitle ?? '',
+        hasFile: record.movie?.hasFile ?? true,
+      }),
+    );
   }
 
   /**
