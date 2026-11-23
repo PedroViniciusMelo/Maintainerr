@@ -3,8 +3,10 @@ import { MaintainerrLogger } from '../../../logging/logs.service';
 import { ExternalApiService } from '../../external-api/external-api.service';
 import {
   DownloadClient,
+  DownloadClientFile,
   DownloadClientTorrent,
 } from '../download-client.interface';
+import { splitClientTags, trackerHost } from './download-client.utils';
 
 // A 403 after a successful login is qBittorrent's Web UI security blocking the
 // caller, so the shared 401/403 text ("Invalid API key") would mislead.
@@ -32,6 +34,21 @@ interface RawQbittorrentTorrent {
   max_ratio: number;
   seeding_time: number;
   max_seeding_time: number;
+  /** Comma-separated tag list. */
+  tags?: string;
+  category?: string;
+  /** Size of every file, selected or not. */
+  total_size?: number;
+  /** Unix seconds. */
+  added_on?: number;
+  /** Announce URL of the working tracker, empty when none is working. */
+  tracker?: string;
+}
+
+/** The `torrents/files` fields we read. `name` is relative to the save path. */
+interface RawQbittorrentFile {
+  name: string;
+  size: number;
 }
 
 /**
@@ -66,6 +83,11 @@ const toDownloadClientTorrent = (
     ratio,
     seedingTime: raw.seeding_time,
     reachedSeedingGoal,
+    tags: splitClientTags(raw.tags),
+    category: raw.category ?? '',
+    size: raw.total_size ?? 0,
+    addedOn: raw.added_on ?? 0,
+    tracker: trackerHost(raw.tracker),
   };
 };
 
@@ -140,6 +162,19 @@ export class QbittorrentApi
       );
       const raw = response.data?.[0];
       return raw ? toDownloadClientTorrent(raw) : null;
+    });
+  }
+
+  public async getTorrentFiles(hash: string): Promise<DownloadClientFile[]> {
+    const normalized = hash.trim().toLowerCase();
+    return this.withAuth(async () => {
+      const response = await this.axios.get<RawQbittorrentFile[]>(
+        '/torrents/files',
+        { params: { hash: normalized } },
+      );
+      return Array.isArray(response.data)
+        ? response.data.map(({ name, size }) => ({ name, size }))
+        : [];
     });
   }
 

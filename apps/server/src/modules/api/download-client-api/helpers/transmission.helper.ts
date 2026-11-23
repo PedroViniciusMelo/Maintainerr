@@ -4,8 +4,10 @@ import { MaintainerrLogger } from '../../../logging/logs.service';
 import { ExternalApiService } from '../../external-api/external-api.service';
 import {
   DownloadClient,
+  DownloadClientFile,
   DownloadClientTorrent,
 } from '../download-client.interface';
+import { splitClientTags, trackerHost } from './download-client.utils';
 
 interface TransmissionRpcResponse<T> {
   arguments: T;
@@ -32,6 +34,18 @@ interface RawTransmissionTorrent {
   seedRatioMode: number;
   seedIdleMode: number;
   isFinished: boolean;
+  /** Labels (Transmission 3.00+); absent on older daemons. */
+  labels?: string[];
+  totalSize?: number;
+  /** Unix seconds. */
+  addedDate?: number;
+  trackers?: { announce: string }[];
+}
+
+/** A `torrent-get` file entry; `name` is relative to the download dir. */
+interface RawTransmissionFile {
+  name: string;
+  length: number;
 }
 
 interface TransmissionTorrentsResponse {
@@ -63,6 +77,10 @@ const torrentFields: (keyof RawTransmissionTorrent)[] = [
   'seedRatioMode',
   'seedIdleMode',
   'isFinished',
+  'labels',
+  'totalSize',
+  'addedDate',
+  'trackers',
 ];
 
 // Radarr/Sonarr record the 40-hex info hash. Anything else Transmission would
@@ -115,6 +133,12 @@ const toDownloadClientTorrent = (
     : hasSeedingGoal(raw, session)
       ? false
       : null,
+  tags: splitClientTags(raw.labels),
+  // Transmission has no categories.
+  category: '',
+  size: raw.totalSize ?? 0,
+  addedOn: raw.addedDate ?? 0,
+  tracker: trackerHost(raw.trackers?.[0]?.announce),
 });
 
 /**
@@ -185,6 +209,21 @@ export class TransmissionApi
       { fields: torrentFields, ids: [normalized] },
     );
     return torrents?.[0] ? toDownloadClientTorrent(torrents[0], session) : null;
+  }
+
+  public async getTorrentFiles(hash: string): Promise<DownloadClientFile[]> {
+    const normalized = hash.trim().toLowerCase();
+    if (!isInfoHash(normalized)) {
+      return [];
+    }
+
+    const { torrents } = await this.rpc<{
+      torrents: { files?: RawTransmissionFile[] }[];
+    }>('torrent-get', { fields: ['files'], ids: [normalized] });
+    const files = torrents?.[0]?.files;
+    return Array.isArray(files)
+      ? files.map(({ name, length }) => ({ name, size: length }))
+      : [];
   }
 
   public async deleteTorrents(

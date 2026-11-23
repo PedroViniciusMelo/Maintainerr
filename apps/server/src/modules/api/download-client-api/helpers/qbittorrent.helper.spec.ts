@@ -194,6 +194,56 @@ describe('QbittorrentApi auth', () => {
   });
 });
 
+describe('QbittorrentApi cross-seed fields', () => {
+  it('maps tags, category, size and tracker host', async () => {
+    const { api, axiosMock } = buildApi();
+    axiosMock.post.mockResolvedValue({ data: 'Ok.', headers: {} });
+    axiosMock.get.mockResolvedValue({
+      data: [
+        {
+          hash: 'abc',
+          name: 'Sample',
+          content_path: '/downloads/sample',
+          ratio: 1,
+          max_ratio: -1,
+          seeding_time: 0,
+          max_seeding_time: -1,
+          tags: 'cross-seed, ,tracker-a',
+          category: 'radarr.cross-seed',
+          total_size: 2048,
+          added_on: 1700000000,
+          tracker: 'https://tracker.example:443/announce',
+        },
+      ],
+    });
+
+    const [torrent] = await api.getTorrents();
+
+    expect(torrent).toMatchObject({
+      tags: ['cross-seed', 'tracker-a'],
+      category: 'radarr.cross-seed',
+      size: 2048,
+      addedOn: 1700000000,
+      tracker: 'tracker.example',
+    });
+  });
+
+  it('lists the files of one torrent by its lowercased hash', async () => {
+    const { api, axiosMock } = buildApi();
+    axiosMock.post.mockResolvedValue({ data: 'Ok.', headers: {} });
+    axiosMock.get.mockResolvedValue({
+      data: [{ name: 'Sample/a.mkv', size: 42, progress: 1 }],
+    });
+
+    await expect(api.getTorrentFiles('ABC')).resolves.toEqual([
+      { name: 'Sample/a.mkv', size: 42 },
+    ]);
+    expect(axiosMock.get).toHaveBeenCalledWith('/torrents/files', {
+      params: { hash: 'abc' },
+    });
+  });
+});
+
 describe('QbittorrentApi deleteTorrents', () => {
   const arrange = () => {
     const { api, axiosMock } = buildApi();

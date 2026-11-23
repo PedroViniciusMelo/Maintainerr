@@ -167,14 +167,46 @@ describe('TransmissionApi torrent mapping', () => {
     return api.getTorrentByHash(HASH.toUpperCase());
   };
 
-  it('maps the content path and ratio, and looks the hash up case-insensitively', async () => {
-    await expect(getMappedTorrent({}, {})).resolves.toEqual({
+  it('maps the content path, ratio and labels, and looks the hash up case-insensitively', async () => {
+    await expect(
+      getMappedTorrent(
+        {},
+        {
+          labels: ['cross-seed', ' '],
+          totalSize: 1024,
+          addedDate: 1700000000,
+          trackers: [{ announce: 'https://tracker.example/announce' }],
+        },
+      ),
+    ).resolves.toEqual({
       hash: HASH,
       name: 'Sample Download',
       content_path: '/downloads/complete/Sample Download',
       ratio: 0.75,
       seedingTime: 172800,
       reachedSeedingGoal: null,
+      tags: ['cross-seed'],
+      category: '',
+      size: 1024,
+      addedOn: 1700000000,
+      tracker: 'tracker.example',
+    });
+  });
+
+  it('lists the files of one torrent', async () => {
+    const { api, axiosMock } = buildApi();
+    axiosMock.post.mockResolvedValueOnce(
+      rpcSuccess({
+        torrents: [{ files: [{ name: 'Sample/a.mkv', length: 42 }] }],
+      }),
+    );
+
+    await expect(api.getTorrentFiles(HASH.toUpperCase())).resolves.toEqual([
+      { name: 'Sample/a.mkv', size: 42 },
+    ]);
+    expect(axiosMock.post.mock.calls[0][1]).toEqual({
+      method: 'torrent-get',
+      arguments: { fields: ['files'], ids: [HASH] },
     });
   });
 

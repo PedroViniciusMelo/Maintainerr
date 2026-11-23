@@ -207,6 +207,22 @@ export class DownloadClientApiService {
   }
 
   /**
+   * Whether a download has finished seeding, by the same rule the media-delete
+   * cleanup uses: the client's own goal, else Maintainerr's fallbacks.
+   */
+  public isDoneSeeding(torrent: DownloadClientTorrent): boolean {
+    return this.shouldRemove(
+      torrent,
+      this.settings.download_client_fallback_ratio ?? 0.5,
+    );
+  }
+
+  /** Whether removing a download should also delete its data (the user setting). */
+  public deletesData(): boolean {
+    return this.settings.download_client_delete_data ?? true;
+  }
+
+  /**
    * Defer to the download client's own seeding goal; only when it enforces no
    * limit (`reachedSeedingGoal === null`) apply Maintainerr's fallbacks: the
    * fallback ratio after the seed-time floor, or any ratio after the maximum

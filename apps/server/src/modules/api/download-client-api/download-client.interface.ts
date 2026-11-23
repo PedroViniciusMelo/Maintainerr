@@ -29,6 +29,25 @@ export interface DownloadClientTorrent {
    *               fallback ratio instead
    */
   reachedSeedingGoal: boolean | null;
+  /**
+   * Tags / labels the client attaches to the download. Used to recognize
+   * cross-seed injected downloads; empty when the client has none.
+   */
+  tags?: string[];
+  /** Category, or an empty string when the client has none. */
+  category?: string;
+  /** Total size in bytes of every file in the download. */
+  size?: number;
+  /** When the download was added, in Unix seconds. */
+  addedOn?: number;
+  /** Host of the tracker currently in use, or an empty string. */
+  tracker?: string;
+}
+
+/** One file inside a download, relative to the download's root. */
+export interface DownloadClientFile {
+  name: string;
+  size: number;
 }
 
 /**
@@ -42,6 +61,11 @@ export interface DownloadClient {
   getTorrents(): Promise<DownloadClientTorrent[]>;
   /** A single download by its hash/id, or null if the client doesn't have it. */
   getTorrentByHash(hash: string): Promise<DownloadClientTorrent | null>;
+  /**
+   * The files inside one download. Used to match a cross-seed to its original
+   * when the two live at different paths (hardlinked / linked cross-seeds).
+   */
+  getTorrentFiles(hash: string): Promise<DownloadClientFile[]>;
   /** Remove downloads by hash, optionally deleting their data from disk. */
   deleteTorrents(hashes: string[], deleteData: boolean): Promise<void>;
 }
