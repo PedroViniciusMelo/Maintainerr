@@ -200,19 +200,36 @@ describe('database migrations', () => {
       // AddDownloadClientRemoveCrossSeeds: off by default, so an existing
       // install keeps removing only the downloads its *arrs name.
       expect(settings.download_client_remove_cross_seeds).toMatchObject(bool);
+
+      // AddCrossSeedArrLinkMemory: the downloads seen linked to *arr media.
+      const memory = byName(await columns(ds, 'cross_seed_arr_link_memory'));
+      expect(Object.keys(memory).sort()).toEqual([
+        'hash',
+        'instanceId',
+        'instanceName',
+        'instanceType',
+        'lastSeenAt',
+        'title',
+      ]);
     } finally {
       await ds.destroy();
     }
   });
 
+  // The newest migration that changes a settings column; later ones only add
+  // tables, which SQLite creates without a rebuild.
+  const settingsIndex = all.findIndex((m) =>
+    m.file.endsWith('-AddDownloadClientRemoveCrossSeeds.ts'),
+  );
+
   it('emit the SQLite create-temporary-table rebuild (generated, not hand-waived)', () => {
-    const newest = all[all.length - 1];
+    const newest = all[settingsIndex];
     const src = fs.readFileSync(path.join(MIGRATIONS_DIR, newest.file), 'utf8');
     // SQLite can't ALTER most columns in place, so `migration:generate` always
     // emits a full create-temporary-table / copy / drop / rename rebuild for the
     // changed tables. A hand-written ALTER shortcut lacks it - this is the
     // cheapest signal the migration was generated rather than authored. The
-    // newest migration adds a settings column, so it rebuilds that table.
+    // newest settings migration adds a column, so it rebuilds that table.
     expect(src).toContain('CREATE TABLE "temporary_settings"');
   });
 
@@ -221,8 +238,10 @@ describe('database migrations', () => {
   // here migrates an empty DB, where a rebuild that copies nothing looks
   // identical to one that copies correctly.
   it('carry the existing settings row through the newest rebuild', async () => {
-    const newest = all[all.length - 1];
-    const ds = await makeDS(all.slice(0, -1).map((m) => m.cls)).initialize();
+    const newest = all[settingsIndex];
+    const ds = await makeDS(
+      all.slice(0, settingsIndex).map((m) => m.cls),
+    ).initialize();
     try {
       await ds.runMigrations();
       await ds.query(
@@ -259,20 +278,18 @@ describe('database migrations', () => {
     const ds = await makeDS(all.map((m) => m.cls)).initialize();
     try {
       await ds.runMigrations();
-      expect(
-        byName(await columns(ds, 'settings'))
-          .download_client_remove_cross_seeds,
-      ).toBeDefined();
+      const tableNames = async () =>
+        (
+          await ds.query(`SELECT name FROM sqlite_master WHERE type='table'`)
+        ).map((t: { name: string }) => t.name);
+      expect(await tableNames()).toContain('cross_seed_arr_link_memory');
       await ds.query(
-        `INSERT INTO settings ("applicationTitle", "download_client_remove_cross_seeds") VALUES ('Fresh', 1)`,
+        `INSERT INTO settings ("applicationTitle") VALUES ('Fresh')`,
       );
 
       await ds.undoLastMigration();
 
-      expect(
-        byName(await columns(ds, 'settings'))
-          .download_client_remove_cross_seeds,
-      ).toBeUndefined();
+      expect(await tableNames()).not.toContain('cross_seed_arr_link_memory');
       const [row] = await ds.query(`SELECT "applicationTitle" FROM settings`);
       expect(row.applicationTitle).toBe('Fresh');
       const [{ c }] = await ds.query(`SELECT COUNT(*) AS c FROM migrations`);

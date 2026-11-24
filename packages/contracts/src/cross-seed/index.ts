@@ -14,9 +14,12 @@ export interface CrossSeedArrLink {
  * Why a download counts as an orphan:
  *  - `original-missing`: a cross-seed whose original download is no longer in
  *    the download client.
- *  - `media-removed`: no download in its group backs media any *arr still has.
+ *  - `media-removed`: its group backed *arr media once (an *arr lists it
+ *    without a file, or Maintainerr saw the link before) and backs none now.
+ *  - `not-in-arr`: it sits in an *arr category but no *arr ever knew its group.
  */
-export type CrossSeedOrphanReason = 'original-missing' | 'media-removed'
+export type CrossSeedOrphanReason =
+  'original-missing' | 'media-removed' | 'not-in-arr'
 
 /**
  * How a download was recognized as a cross-seed:
@@ -44,6 +47,11 @@ export interface CrossSeedTorrent {
   /** Null for the original of a group. */
   detection: CrossSeedDetection | null
   arrLinks: CrossSeedArrLink[]
+  /**
+   * The *arr item Maintainerr saw this download back before the *arr erased
+   * its history; null while an *arr still lists it, or when never seen.
+   */
+  formerArrLink: CrossSeedArrLink | null
   orphanReason: CrossSeedOrphanReason | null
 }
 

@@ -22,6 +22,17 @@ export const OrphanReasonBadge = ({
   reason: CrossSeedOrphanReason
 }) => {
   const { t } = useLingui()
+  if (reason === 'not-in-arr') {
+    return (
+      <Badge badgeType="warning">
+        <span
+          title={t`It sits in an *arr category, but no *arr has ever known it.`}
+        >
+          {t`Not in any *arr`}
+        </span>
+      </Badge>
+    )
+  }
   return (
     <Badge badgeType="danger">
       {reason === 'original-missing' ? t`Original missing` : t`Media removed`}
@@ -41,8 +52,21 @@ export const SeedingBadge = ({ torrent }: { torrent: CrossSeedTorrent }) => {
 const arrLinkLabel = (link: CrossSeedArrLink) =>
   link.title ? `${link.instanceName}: ${link.title}` : link.instanceName
 
-export const ArrLinks = ({ links }: { links: CrossSeedArrLink[] }) => {
+export const ArrLinks = ({
+  links,
+  former = null,
+}: {
+  links: CrossSeedArrLink[]
+  former?: CrossSeedArrLink | null
+}) => {
   const { t } = useLingui()
+  if (links.length === 0 && former) {
+    return (
+      <span className="text-zinc-400">
+        {t`Was in ${{ link: arrLinkLabel(former) }}`}
+      </span>
+    )
+  }
   if (links.length === 0) {
     return <span className="text-zinc-500">{t`Not in any *arr`}</span>
   }

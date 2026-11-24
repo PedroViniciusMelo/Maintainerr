@@ -2094,6 +2094,10 @@ msgstr "無效的範本檔案"
 msgid "Invalid value"
 msgstr "無效的值"
 
+#: src/components/CrossSeed/crossSeedLabels.tsx
+msgid "It sits in an *arr category, but no *arr has ever known it."
+msgstr ""
+
 #: src/components/Collection/CollectionItem/index.tsx
 #: src/components/StorageMetrics/index.tsx
 msgid "Items"
@@ -4829,6 +4833,10 @@ msgstr "警告"
 #: src/components/Collection/CollectionDetail/RemoveFromCollectionButton/index.tsx
 msgid "Warning"
 msgstr "警告"
+
+#: src/components/CrossSeed/crossSeedLabels.tsx
+msgid "Was in {link}"
+msgstr ""
 
 #: src/components/Services/ServicesHub.tsx
 msgid "Watch statistics"

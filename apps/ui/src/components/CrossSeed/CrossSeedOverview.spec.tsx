@@ -48,6 +48,7 @@ const torrent = (
   seedingGoalMet: true,
   detection: null,
   arrLinks: [],
+  formerArrLink: null,
   orphanReason: null,
   ...overrides,
 })
@@ -173,6 +174,41 @@ describe('CrossSeedOverview', () => {
     fireEvent.click(screen.getByText('Sonarr (1)'))
     expect(screen.getByText('Sample Release eee')).toBeTruthy()
     expect(screen.queryByText('Sample Release aaa')).toBeNull()
+  })
+
+  it('tells media removed (with the remembered *arr item) from never in an *arr', () => {
+    const removed: CrossSeedGroup = {
+      ...linkedGroup,
+      id: 'rem',
+      original: torrent('rem', {
+        orphanReason: 'media-removed',
+        formerArrLink: {
+          instanceType: 'radarr',
+          instanceId: 1,
+          instanceName: 'Radarr',
+          title: 'Deleted Movie',
+        },
+      }),
+      crossSeeds: [],
+      orphanReason: 'media-removed',
+    }
+    const unknown: CrossSeedGroup = {
+      ...linkedGroup,
+      id: 'unk',
+      original: torrent('unk', { orphanReason: 'not-in-arr' }),
+      crossSeeds: [],
+      orphanReason: 'not-in-arr',
+    }
+    useCrossSeedOverviewMock.mockReturnValue(
+      buildQuerySuccessResult(overview({ groups: [removed, unknown] })),
+    )
+
+    render(<CrossSeedOverview />)
+    fireEvent.click(screen.getByText('Orphans (2)'))
+
+    expect(screen.getByText('Was in Radarr: Deleted Movie')).toBeTruthy()
+    expect(screen.getByText('Media removed')).toBeTruthy()
+    expect(screen.getAllByText('Not in any *arr')).toHaveLength(2)
   })
 
   it('warns that nothing is reported as media removed while an *arr is unreadable', () => {

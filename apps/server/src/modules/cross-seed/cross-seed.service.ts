@@ -11,6 +11,8 @@ import {
   CrossSeedTorrent,
 } from '@maintainerr/contracts';
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
 import { DownloadClientApiService } from '../api/download-client-api/download-client-api.service';
 import {
   DownloadClientFile,
@@ -28,6 +30,10 @@ import {
   normalizeContentPath,
   TorrentGroup,
 } from '../api/download-client-api/cross-seed.grouping';
+import { CrossSeedArrLinkMemory } from './entities/cross-seed-arr-link.entities';
+
+/** Rows written per statement when remembering *arr links. */
+const MEMORY_CHUNK = 200;
 
 /** File lists never change for a hash; keep this many between page loads. */
 const FILES_CACHE_LIMIT = 5000;
@@ -52,6 +58,7 @@ interface AnalyzedGroup {
 interface Analysis {
   torrents: DownloadClientTorrent[];
   index: ArrDownloadIndex;
+  memory: Map<string, CrossSeedArrLinkMemory>;
   groups: AnalyzedGroup[];
   markers: { tags: string[]; categories: string[] };
   arrCategories: string[];
@@ -69,6 +76,8 @@ export class CrossSeedService {
   constructor(
     private readonly downloadClient: DownloadClientApiService,
     private readonly arrIndex: ArrDownloadIndexService,
+    @InjectRepository(CrossSeedArrLinkMemory)
+    private readonly memoryRepo: Repository<CrossSeedArrLinkMemory>,
     private readonly logger: MaintainerrLogger,
   ) {
     logger.setContext(CrossSeedService.name);
@@ -102,7 +111,8 @@ export class CrossSeedService {
       };
     }
 
-    const { index, groups, torrents, markers, arrCategories } = analysis;
+    const { index, groups, torrents, markers, arrCategories, memory } =
+      analysis;
     return {
       ...empty,
       markers,
@@ -112,7 +122,7 @@ export class CrossSeedService {
       torrentCount: torrents.length,
       groups: groups
         .map(({ group, orphanReason, arrType }) =>
-          this.toGroup(group, orphanReason, arrType, index),
+          this.toGroup(group, orphanReason, arrType, index, memory),
         )
         .sort(
           (a, b) =>
@@ -252,6 +262,9 @@ export class CrossSeedService {
     const markers = detectCrossSeedMarkers(torrents);
     const linksOf = (torrent: DownloadClientTorrent) =>
       index.links.get(torrent.hash.toLowerCase()) ?? [];
+    const memory = await this.rememberLinks(torrents, index);
+    const rememberedOf = (torrent: DownloadClientTorrent) =>
+      memory.get(torrent.hash.toLowerCase());
 
     // The categories the *arrs download into, learned from the downloads
     // they grabbed. A group outside them (music, manual downloads, another
@@ -266,6 +279,11 @@ export class CrossSeedService {
         continue;
       }
       const category = baseCategory(torrent.category ?? '');
+      // Uncategorized downloads are not an *arr category: one *arr download
+      // without a category must not put every manual download in scope.
+      if (!category) {
+        continue;
+      }
       arrCategories.add(category);
       const votes = categoryVotes.get(category) ?? new Map();
       for (const type of new Set(links.map((link) => link.instanceType))) {
@@ -291,6 +309,7 @@ export class CrossSeedService {
         .find(Boolean);
       return (
         linked?.instanceType ??
+        members.map(rememberedOf).find(Boolean)?.instanceType ??
         categoryArrType(baseCategory(members[0]?.category ?? ''))
       );
     };
@@ -304,13 +323,20 @@ export class CrossSeedService {
 
     const analyzed = groups.map((group) => ({
       group,
-      orphanReason: this.orphanReason(group, index, arrCategories, linksOf),
+      orphanReason: this.orphanReason(
+        group,
+        index,
+        arrCategories,
+        linksOf,
+        (torrent) => !!rememberedOf(torrent),
+      ),
       arrType: arrTypeOf(group),
     }));
 
     return {
       torrents,
       index,
+      memory,
       groups: analyzed,
       markers: { tags: markers.tags, categories: markers.categories },
       arrCategories: [...arrCategories].sort(),
@@ -322,6 +348,7 @@ export class CrossSeedService {
     index: ArrDownloadIndex,
     arrCategories: Set<string>,
     linksOf: (torrent: DownloadClientTorrent) => { hasFile: boolean }[],
+    isRemembered: (torrent: DownloadClientTorrent) => boolean,
   ): CrossSeedOrphanReason | null {
     if (!group.original) {
       return 'original-missing';
@@ -334,10 +361,76 @@ export class CrossSeedService {
     if (!arrCategories.has(baseCategory(group.original.category ?? ''))) {
       return null;
     }
-    const backsMedia = membersOf(group).some((torrent) =>
+    const members = membersOf(group);
+    const backsMedia = members.some((torrent) =>
       linksOf(torrent).some((link) => link.hasFile),
     );
-    return backsMedia ? null : 'media-removed';
+    if (backsMedia) {
+      return null;
+    }
+    // Media removed needs evidence the group once backed *arr media: an *arr
+    // still lists it without a file, or Maintainerr saw an *arr link it
+    // before the *arr erased that history. Without either, no *arr ever knew it.
+    const onceBackedMedia = members.some(
+      (torrent) => linksOf(torrent).length > 0 || isRemembered(torrent),
+    );
+    return onceBackedMedia ? 'media-removed' : 'not-in-arr';
+  }
+
+  /**
+   * Remember every download in the client an *arr links right now, and forget
+   * downloads no longer in the client. Returns what is remembered for the
+   * downloads in the client. A database failure only loses the memory: the
+   * overview then treats every unlinked download as never known to an *arr.
+   */
+  private async rememberLinks(
+    torrents: DownloadClientTorrent[],
+    index: ArrDownloadIndex,
+  ): Promise<Map<string, CrossSeedArrLinkMemory>> {
+    const memory = new Map<string, CrossSeedArrLinkMemory>();
+    try {
+      const now = new Date();
+      const linked: CrossSeedArrLinkMemory[] = [];
+      for (const torrent of torrents) {
+        const hash = torrent.hash.toLowerCase();
+        const [link] = index.links.get(hash) ?? [];
+        if (link) {
+          linked.push({
+            hash,
+            instanceType: link.instanceType,
+            instanceId: link.instanceId,
+            instanceName: link.instanceName,
+            title: link.title,
+            lastSeenAt: now,
+          });
+        }
+      }
+      for (let i = 0; i < linked.length; i += MEMORY_CHUNK) {
+        await this.memoryRepo.upsert(linked.slice(i, i + MEMORY_CHUNK), [
+          'hash',
+        ]);
+      }
+
+      const inClient = new Set(torrents.map((t) => t.hash.toLowerCase()));
+      const rows = await this.memoryRepo.find();
+      const gone = rows
+        .filter((row) => !inClient.has(row.hash))
+        .map((row) => row.hash);
+      for (let i = 0; i < gone.length; i += MEMORY_CHUNK) {
+        await this.memoryRepo.delete({
+          hash: In(gone.slice(i, i + MEMORY_CHUNK)),
+        });
+      }
+      for (const row of rows) {
+        if (inClient.has(row.hash)) {
+          memory.set(row.hash, row);
+        }
+      }
+    } catch (error) {
+      this.logger.warn('Could not read or save the remembered *arr downloads');
+      this.logger.debug(error);
+    }
+    return memory;
   }
 
   private async loadFiles(
@@ -365,6 +458,7 @@ export class CrossSeedService {
     orphanReason: CrossSeedOrphanReason | null,
     arrType: CrossSeedArrType | null,
     index: ArrDownloadIndex,
+    memory: Map<string, CrossSeedArrLinkMemory>,
   ): CrossSeedGroup {
     const toTorrent = (
       torrent: DownloadClientTorrent,
@@ -395,6 +489,7 @@ export class CrossSeedService {
           title,
         }),
       ),
+      formerArrLink: this.formerLink(torrent, index, memory),
       orphanReason,
     });
 
@@ -411,6 +506,25 @@ export class CrossSeedService {
         0,
         ...membersOf(group).map((torrent) => torrent.size ?? 0),
       ),
+    };
+  }
+
+  /** The remembered *arr link of a download no *arr lists any more. */
+  private formerLink(
+    torrent: DownloadClientTorrent,
+    index: ArrDownloadIndex,
+    memory: Map<string, CrossSeedArrLinkMemory>,
+  ): CrossSeedArrLink | null {
+    const hash = torrent.hash.toLowerCase();
+    const remembered = memory.get(hash);
+    if (!remembered || (index.links.get(hash) ?? []).length > 0) {
+      return null;
+    }
+    return {
+      instanceType: remembered.instanceType,
+      instanceId: remembered.instanceId,
+      instanceName: remembered.instanceName,
+      title: remembered.title,
     };
   }
 }

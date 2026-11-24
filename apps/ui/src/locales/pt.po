@@ -2096,6 +2096,10 @@ msgstr ""
 msgid "Invalid value"
 msgstr ""
 
+#: src/components/CrossSeed/crossSeedLabels.tsx
+msgid "It sits in an *arr category, but no *arr has ever known it."
+msgstr ""
+
 #: src/components/Collection/CollectionItem/index.tsx
 #: src/components/StorageMetrics/index.tsx
 msgid "Items"
@@ -4830,6 +4834,10 @@ msgstr ""
 
 #: src/components/Collection/CollectionDetail/RemoveFromCollectionButton/index.tsx
 msgid "Warning"
+msgstr ""
+
+#: src/components/CrossSeed/crossSeedLabels.tsx
+msgid "Was in {link}"
 msgstr ""
 
 #: src/components/Services/ServicesHub.tsx

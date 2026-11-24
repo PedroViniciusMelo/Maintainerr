@@ -252,7 +252,10 @@ const CrossSeedOrphans = ({ groups, deletesData }: CrossSeedOrphansProps) => {
                       .join(' - ')}
                   </div>
                   <div className="text-xs">
-                    <ArrLinks links={torrent.arrLinks} />
+                    <ArrLinks
+                      links={torrent.arrLinks}
+                      former={torrent.formerArrLink}
+                    />
                   </div>
                 </td>
                 <td className="px-3 py-2">

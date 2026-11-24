@@ -1,4 +1,6 @@
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { Mocked, TestBed } from '@suites/unit';
+import { FindOperator, Repository } from 'typeorm';
 import { DownloadClientApiService } from '../api/download-client-api/download-client-api.service';
 import {
   DownloadClient,
@@ -11,6 +13,7 @@ import {
 } from './arr-download-index.service';
 import { isCrossSeedMarker } from '../api/download-client-api/cross-seed.grouping';
 import { CrossSeedService } from './cross-seed.service';
+import { CrossSeedArrLinkMemory } from './entities/cross-seed-arr-link.entities';
 
 const GB = 1024 * 1024 * 1024;
 
@@ -60,6 +63,8 @@ describe('CrossSeedService', () => {
   let downloadClient: Mocked<DownloadClientApiService>;
   let arrIndex: Mocked<ArrDownloadIndexService>;
   let api: jest.Mocked<DownloadClient>;
+  /** The remembered *arr links, as the database would keep them. */
+  let memoryRows: Map<string, CrossSeedArrLinkMemory>;
 
   const setup = (
     torrents: DownloadClientTorrent[],
@@ -98,6 +103,26 @@ describe('CrossSeedService', () => {
       (t: DownloadClientTorrent) => t.reachedSeedingGoal !== false,
     );
     downloadClient.deletesData.mockReturnValue(true);
+
+    memoryRows = new Map();
+    const memoryRepo = unitRef.get(
+      getRepositoryToken(CrossSeedArrLinkMemory) as string,
+    ) as unknown as Mocked<Repository<CrossSeedArrLinkMemory>>;
+    memoryRepo.upsert.mockImplementation(async (rows) => {
+      for (const row of rows as CrossSeedArrLinkMemory[]) {
+        memoryRows.set(row.hash, { ...row });
+      }
+      return undefined as never;
+    });
+    memoryRepo.find.mockImplementation(async () => [...memoryRows.values()]);
+    memoryRepo.delete.mockImplementation(async (where) => {
+      const hashes = (where as unknown as { hash: FindOperator<string[]> }).hash
+        .value;
+      for (const hash of hashes) {
+        memoryRows.delete(hash);
+      }
+      return undefined as never;
+    });
   });
 
   describe('getOverview', () => {
@@ -191,15 +216,12 @@ describe('CrossSeedService', () => {
       ]);
     });
 
-    it.each([
-      ['no *arr knows the download any more', {}],
-      ['the media lost its file', { a: [link(false)] }],
-    ])('reports the whole group as media-removed when %s', async (_, links) => {
+    it('reports the whole group as media-removed when the media lost its file', async () => {
       const original = torrent('a');
       // Another download keeps "radarr" known as an *arr category.
       setup([original, crossSeedOf(original, 'b'), torrent('other')], {
         other: [link()],
-        ...links,
+        a: [link(false)],
       });
 
       const [group] = (await service.getOverview()).groups;
@@ -207,6 +229,66 @@ describe('CrossSeedService', () => {
       expect(group.orphanReason).toBe('media-removed');
       expect(group.original?.orphanReason).toBe('media-removed');
       expect(group.crossSeeds[0].orphanReason).toBe('media-removed');
+    });
+
+    it('remembers an *arr link, so deleting the media (and its history) reads as media-removed', async () => {
+      const original = torrent('a');
+      const torrents = [original, crossSeedOf(original, 'b'), torrent('other')];
+      setup(torrents, { other: [link()], a: [link()] });
+      expect((await service.getOverview()).groups[0].orphanReason).toBeNull();
+
+      // The movie is deleted: Radarr erases its history with it.
+      setup(torrents, { other: [link()] });
+      const [group] = (await service.getOverview()).groups;
+
+      expect(group.orphanReason).toBe('media-removed');
+      expect(group.original?.formerArrLink).toEqual({
+        instanceType: 'radarr',
+        instanceId: 1,
+        instanceName: 'Radarr',
+        title: 'Sample Movie',
+      });
+    });
+
+    it('reports a download no *arr ever knew as not-in-arr, not media-removed', async () => {
+      const original = torrent('a');
+      setup([original, crossSeedOf(original, 'b'), torrent('other')], {
+        other: [link()],
+      });
+
+      const [group] = (await service.getOverview()).groups;
+
+      expect(group.orphanReason).toBe('not-in-arr');
+      expect(group.original?.formerArrLink).toBeNull();
+    });
+
+    it('never treats uncategorized downloads as an *arr category', async () => {
+      const original = torrent('a', { category: '' });
+      setup(
+        [
+          original,
+          crossSeedOf(original, 'b', { category: '' }),
+          torrent('other', { category: '' }),
+        ],
+        { other: [link()] },
+      );
+
+      const groups = (await service.getOverview()).groups;
+
+      expect(groups.find((g) => g.original?.hash === 'a')?.orphanReason).toBe(
+        null,
+      );
+    });
+
+    it('forgets remembered downloads that left the download client', async () => {
+      setup([torrent('a'), torrent('z')], { a: [link()], z: [link()] });
+      await service.getOverview();
+      expect([...memoryRows.keys()].sort()).toEqual(['a', 'z']);
+
+      setup([torrent('a')], { a: [link()] });
+      await service.getOverview();
+
+      expect([...memoryRows.keys()]).toEqual(['a']);
     });
 
     it('never reports media-removed while an *arr history could not be read', async () => {

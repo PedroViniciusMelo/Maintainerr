@@ -2096,6 +2096,10 @@ msgstr "Invalid template file"
 msgid "Invalid value"
 msgstr "Invalid value"
 
+#: src/components/CrossSeed/crossSeedLabels.tsx
+msgid "It sits in an *arr category, but no *arr has ever known it."
+msgstr "It sits in an *arr category, but no *arr has ever known it."
+
 #: src/components/Collection/CollectionItem/index.tsx
 #: src/components/StorageMetrics/index.tsx
 msgid "Items"
@@ -4831,6 +4835,10 @@ msgstr "Warn"
 #: src/components/Collection/CollectionDetail/RemoveFromCollectionButton/index.tsx
 msgid "Warning"
 msgstr "Warning"
+
+#: src/components/CrossSeed/crossSeedLabels.tsx
+msgid "Was in {link}"
+msgstr "Was in {link}"
 
 #: src/components/Services/ServicesHub.tsx
 msgid "Watch statistics"

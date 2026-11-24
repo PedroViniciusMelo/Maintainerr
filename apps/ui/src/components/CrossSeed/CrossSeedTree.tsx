@@ -52,7 +52,7 @@ const TorrentDetails = ({ torrent }: { torrent: CrossSeedTorrent }) => {
       </span>
       {torrent.tracker ? <span>{torrent.tracker}</span> : null}
       {torrent.category ? <span>{torrent.category}</span> : null}
-      <ArrLinks links={torrent.arrLinks} />
+      <ArrLinks links={torrent.arrLinks} former={torrent.formerArrLink} />
     </div>
   )
 }
