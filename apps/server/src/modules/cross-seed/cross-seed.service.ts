@@ -269,13 +269,9 @@ export class CrossSeedService {
     // The categories the *arrs download into, learned from the downloads
     // they grabbed. A group outside them (music, manual downloads, another
     // tool) was never *arr media, so it is not judged by *arr history.
-    // Which *arr downloads into each of those categories, by how many of its
-    // downloads use it, so a group no *arr history names still gets a home.
     const arrCategories = new Set<string>();
-    const categoryVotes = new Map<string, Map<CrossSeedArrType, number>>();
     for (const torrent of torrents) {
-      const links = linksOf(torrent);
-      if (links.length === 0) {
+      if (linksOf(torrent).length === 0) {
         continue;
       }
       const category = baseCategory(torrent.category ?? '');
@@ -285,23 +281,10 @@ export class CrossSeedService {
         continue;
       }
       arrCategories.add(category);
-      const votes = categoryVotes.get(category) ?? new Map();
-      for (const type of new Set(links.map((link) => link.instanceType))) {
-        votes.set(type, (votes.get(type) ?? 0) + 1);
-      }
-      categoryVotes.set(category, votes);
     }
-    const categoryArrType = (category: string): CrossSeedArrType | null => {
-      let best: CrossSeedArrType | null = null;
-      let bestCount = 0;
-      for (const [type, count] of categoryVotes.get(category) ?? []) {
-        if (count > bestCount) {
-          best = type;
-          bestCount = count;
-        }
-      }
-      return best;
-    };
+    // A group belongs to the *arr that links one of its downloads now, or
+    // that Maintainerr saw link one before. Sharing a category is no proof:
+    // a manual download in "radarr" was never Radarr's.
     const arrTypeOf = (group: TorrentGroup): CrossSeedArrType | null => {
       const members = membersOf(group);
       const linked = members
@@ -310,7 +293,7 @@ export class CrossSeedService {
       return (
         linked?.instanceType ??
         members.map(rememberedOf).find(Boolean)?.instanceType ??
-        categoryArrType(baseCategory(members[0]?.category ?? ''))
+        null
       );
     };
 

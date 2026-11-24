@@ -163,7 +163,7 @@ describe('CrossSeedService', () => {
     it('places each group under its *arr and counts shared data once', async () => {
       const movie = torrent('a', { size: 4 * GB });
       const show = torrent('s', { category: 'tv-sonarr', size: 2 * GB });
-      // No *arr history names this one; its category is Sonarr's.
+      // No *arr ever knew this one, though it sits in Sonarr's category.
       const oldShow = torrent('o', { category: 'tv-sonarr', size: GB });
       const music = torrent('m', { category: 'music', size: GB });
       setup(
@@ -195,7 +195,10 @@ describe('CrossSeedService', () => {
         arrType: 'sonarr',
         dataSize: 2 * GB,
       });
-      expect(byOriginal('o')?.arrType).toBe('sonarr');
+      expect(byOriginal('o')).toMatchObject({
+        arrType: null,
+        orphanReason: 'not-in-arr',
+      });
       expect(byOriginal('m')?.arrType).toBeNull();
     });
 

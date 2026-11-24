@@ -66,8 +66,9 @@ export interface CrossSeedGroup {
   crossSeeds: CrossSeedTorrent[]
   orphanReason: CrossSeedOrphanReason | null
   /**
-   * The *arr the group belongs to: the *arr that grabbed one of its downloads,
-   * else the *arr whose downloads use the same category. Null when none does.
+   * The *arr the group belongs to: the *arr that links one of its downloads,
+   * now or (remembered) before its history was erased. Null when no *arr ever
+   * did, even when the group sits in an *arr's category.
    */
   arrType: CrossSeedArrType | null
   /**
