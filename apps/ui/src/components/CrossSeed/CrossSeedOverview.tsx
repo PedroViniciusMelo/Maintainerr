@@ -1,6 +1,7 @@
 import { RefreshIcon } from '@heroicons/react/solid'
 import { plural } from '@lingui/core/macro'
 import { Trans, useLingui } from '@lingui/react/macro'
+import type { CrossSeedGroup } from '@maintainerr/contracts'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -9,6 +10,7 @@ import {
 } from '../../api/crossSeed'
 import { useDownloadClientSettings } from '../../api/settings'
 import { getApiErrorMessage } from '../../utils/ApiError'
+import { formatBytes } from '../../utils/formatBytes'
 import Alert from '../Common/Alert'
 import Button from '../Common/Button'
 import LoadingSpinner, { SmallLoadingSpinner } from '../Common/LoadingSpinner'
@@ -16,11 +18,60 @@ import TabbedLinks from '../Common/TabbedLinks'
 import CrossSeedOrphans, { collectOrphans } from './CrossSeedOrphans'
 import CrossSeedTree from './CrossSeedTree'
 
-type CrossSeedTab = 'tree' | 'orphans'
+type CrossSeedTab = 'radarr' | 'sonarr' | 'orphans' | 'other'
+
+interface TabSummary {
+  tab: CrossSeedTab
+  label: string
+  groups: CrossSeedGroup[]
+  /** Downloads the tab lists. */
+  count: number
+}
+
+const dataSizeOf = (groups: CrossSeedGroup[]) =>
+  groups.reduce((sum, group) => sum + group.dataSize, 0)
+
+/** One size per tab, above the tabs; clicking one opens that tab. */
+const TabSizes = ({
+  summaries,
+  current,
+  onSelect,
+}: {
+  summaries: TabSummary[]
+  current: CrossSeedTab
+  onSelect: (tab: CrossSeedTab) => void
+}) => (
+  <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+    {summaries.map((summary) => (
+      <button
+        key={summary.tab}
+        type="button"
+        onClick={() => onSelect(summary.tab)}
+        aria-pressed={summary.tab === current}
+        className={`rounded-lg border p-3 text-left transition ${
+          summary.tab === current
+            ? 'border-maintainerr-600 bg-zinc-800'
+            : 'border-zinc-700 bg-zinc-800/60 hover:border-zinc-500'
+        }`}
+      >
+        <div className="text-xs text-zinc-400">{summary.label}</div>
+        <div className="text-lg font-semibold text-white">
+          {formatBytes(dataSizeOf(summary.groups))}
+        </div>
+        <div className="text-xs text-zinc-400">
+          {plural(summary.count, {
+            one: '# download',
+            other: '# downloads',
+          })}
+        </div>
+      </button>
+    ))}
+  </div>
+)
 
 const CrossSeedOverview = () => {
   const { t, i18n } = useLingui()
-  const [tab, setTab] = useState<CrossSeedTab>('tree')
+  const [tab, setTab] = useState<CrossSeedTab>('radarr')
   const overview = useCrossSeedOverview()
   const refresh = useRefreshCrossSeedOverview()
   const downloadClientSettings = useDownloadClientSettings()
@@ -57,6 +108,54 @@ const CrossSeedOverview = () => {
   }
 
   const orphanCount = collectOrphans(data.groups).length
+  const downloadsIn = (groups: CrossSeedGroup[]) =>
+    groups.reduce(
+      (sum, group) => sum + group.crossSeeds.length + (group.original ? 1 : 0),
+      0,
+    )
+  const ofArr = (type: CrossSeedGroup['arrType']) =>
+    data.groups.filter((group) => group.arrType === type)
+  const radarrGroups = ofArr('radarr')
+  const sonarrGroups = ofArr('sonarr')
+  const otherGroups = data.groups.filter(
+    (group) => group.arrType !== 'radarr' && group.arrType !== 'sonarr',
+  )
+  const orphanGroups = data.groups.filter((group) => group.orphanReason)
+  const summaries: TabSummary[] = [
+    {
+      tab: 'radarr',
+      label: t`Radarr`,
+      groups: radarrGroups,
+      count: downloadsIn(radarrGroups),
+    },
+    {
+      tab: 'sonarr',
+      label: t`Sonarr`,
+      groups: sonarrGroups,
+      count: downloadsIn(sonarrGroups),
+    },
+    {
+      tab: 'orphans',
+      label: t`Orphans`,
+      groups: orphanGroups,
+      count: orphanCount,
+    },
+    ...(otherGroups.length > 0
+      ? [
+          {
+            tab: 'other' as const,
+            label: t`Other`,
+            groups: otherGroups,
+            count: downloadsIn(otherGroups),
+          },
+        ]
+      : []),
+  ]
+  const currentTab = summaries.some((summary) => summary.tab === tab)
+    ? tab
+    : 'radarr'
+  const groupsOf = (target: CrossSeedTab) =>
+    summaries.find((summary) => summary.tab === target)?.groups ?? []
   const torrentCount = data.torrentCount
   const failedInstances = data.arrInstances.filter((instance) => !instance.ok)
   const generatedAt = new Date(data.generatedAt).toLocaleString(i18n.locale)
@@ -134,20 +233,25 @@ const CrossSeedOverview = () => {
               </p>
             </div>
 
+            <TabSizes
+              summaries={summaries}
+              current={currentTab}
+              onSelect={setTab}
+            />
+            <p className="mb-2 text-xs text-zinc-500">
+              <Trans>
+                Sizes count each group's data once: cross-seeds share the
+                original's files.
+              </Trans>
+            </p>
             <TabbedLinks
               allEnabled
-              currentRoute={tab}
+              currentRoute={currentTab}
               onChange={(target) => setTab(target as CrossSeedTab)}
-              routes={[
-                {
-                  text: t`Tree (${{ groupCount: data.groups.length }})`,
-                  route: 'tree',
-                },
-                {
-                  text: t`Orphans (${{ orphanCount }})`,
-                  route: 'orphans',
-                },
-              ]}
+              routes={summaries.map((summary) => ({
+                text: `${summary.label} (${summary.groups.length})`,
+                route: summary.tab,
+              }))}
             />
 
             {refresh.isError ? (
@@ -162,8 +266,8 @@ const CrossSeedOverview = () => {
               </div>
             ) : null}
 
-            {tab === 'tree' ? (
-              <CrossSeedTree groups={data.groups} />
+            {currentTab !== 'orphans' ? (
+              <CrossSeedTree key={currentTab} groups={groupsOf(currentTab)} />
             ) : (
               <CrossSeedOrphans
                 groups={data.groups}

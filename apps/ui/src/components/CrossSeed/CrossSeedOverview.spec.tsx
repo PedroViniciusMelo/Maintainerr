@@ -66,6 +66,17 @@ const linkedGroup: CrossSeedGroup = {
   }),
   crossSeeds: [torrent('bbb', { detection: 'marker', tags: ['cross-seed'] })],
   orphanReason: null,
+  arrType: 'radarr',
+  dataSize: 1024 * 1024 * 1024,
+}
+
+const showGroup: CrossSeedGroup = {
+  id: 'eee',
+  original: torrent('eee', { category: 'tv-sonarr' }),
+  crossSeeds: [torrent('fff', { detection: 'marker', category: 'tv-sonarr' })],
+  orphanReason: null,
+  arrType: 'sonarr',
+  dataSize: 3 * 1024 * 1024 * 1024,
 }
 
 const orphanGroup: CrossSeedGroup = {
@@ -80,6 +91,8 @@ const orphanGroup: CrossSeedGroup = {
     }),
   ],
   orphanReason: 'original-missing',
+  arrType: 'radarr',
+  dataSize: 2 * 1024 * 1024 * 1024,
 }
 
 const overview = (
@@ -134,6 +147,34 @@ describe('CrossSeedOverview', () => {
     expect(screen.getByText('Radarr: Sample Movie')).toBeTruthy()
   })
 
+  it('splits groups into Radarr and Sonarr tabs with the size of each tab', () => {
+    useCrossSeedOverviewMock.mockReturnValue(
+      buildQuerySuccessResult(
+        overview({ groups: [orphanGroup, linkedGroup, showGroup] }),
+      ),
+    )
+
+    render(<CrossSeedOverview />)
+
+    const radarrCard = screen.getByRole('button', { name: /^Radarr/ })
+    expect(radarrCard.textContent).toContain('3.00 GB')
+    expect(radarrCard.textContent).toContain('4 downloads')
+    expect(
+      screen.getByRole('button', { name: /^Sonarr/ }).textContent,
+    ).toContain('3.00 GB')
+    expect(
+      screen.getByRole('button', { name: /^Orphans/ }).textContent,
+    ).toContain('2.00 GB')
+    // No "Other" tab while every group belongs to Radarr or Sonarr.
+    expect(screen.queryByText(/^Other/)).toBeNull()
+
+    expect(screen.getByText('Sample Release aaa')).toBeTruthy()
+    expect(screen.queryByText('Sample Release eee')).toBeNull()
+    fireEvent.click(screen.getByText('Sonarr (1)'))
+    expect(screen.getByText('Sample Release eee')).toBeTruthy()
+    expect(screen.queryByText('Sample Release aaa')).toBeNull()
+  })
+
   it('warns that nothing is reported as media removed while an *arr is unreadable', () => {
     useCrossSeedOverviewMock.mockReturnValue(
       buildQuerySuccessResult(
@@ -183,7 +224,7 @@ describe('CrossSeedOverview', () => {
 
     render(<CrossSeedOverview />)
 
-    fireEvent.click(screen.getByText('Orphans (2)'))
+    fireEvent.click(screen.getByText('Orphans (1)'))
     // The linked group's downloads are not orphans and are not listed.
     expect(screen.queryByLabelText('Select Sample Release aaa')).toBeNull()
     fireEvent.click(screen.getByLabelText('Select all orphans'))

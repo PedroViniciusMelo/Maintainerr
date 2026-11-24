@@ -57,6 +57,16 @@ export interface CrossSeedGroup {
   original: CrossSeedTorrent | null
   crossSeeds: CrossSeedTorrent[]
   orphanReason: CrossSeedOrphanReason | null
+  /**
+   * The *arr the group belongs to: the *arr that grabbed one of its downloads,
+   * else the *arr whose downloads use the same category. Null when none does.
+   */
+  arrType: CrossSeedArrType | null
+  /**
+   * Bytes the group's data takes, counted once: cross-seeds share the
+   * original's files (same path or hardlinks), so this is its largest download.
+   */
+  dataSize: number
 }
 
 export interface CrossSeedArrStatus {

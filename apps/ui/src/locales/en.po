@@ -42,6 +42,11 @@ msgstr "(Next: {0})"
 msgid "[Image]"
 msgstr "[Image]"
 
+#. placeholder {0}: summary.count
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "{0, plural, one {# download} other {# downloads}}"
+msgstr "{0, plural, one {# download} other {# downloads}}"
+
 #: src/components/StorageMetrics/index.tsx
 msgid "{accurateMountCount} of {mountCount} mounts report total capacity"
 msgstr "{accurateMountCount} of {mountCount} mounts report total capacity"
@@ -2960,8 +2965,12 @@ msgid "Original missing"
 msgstr "Original missing"
 
 #: src/components/CrossSeed/CrossSeedOverview.tsx
-msgid "Orphans ({orphanCount})"
-msgstr "Orphans ({orphanCount})"
+msgid "Orphans"
+msgstr "Orphans"
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Other"
+msgstr "Other"
 
 #: src/components/VersionStatus/index.tsx
 msgid "Out of Date"
@@ -3203,6 +3212,10 @@ msgstr "Push this item's deletion further out by the number of days below. An it
 #: src/components/Rules/RuleGroup/AddModal/index.tsx
 msgid "Quality profile is required for this action"
 msgstr "Quality profile is required for this action"
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Radarr"
+msgstr "Radarr"
 
 #: src/components/Settings/Servarr/ServarrSettings.tsx
 msgid "Radarr settings - Maintainerr"
@@ -3893,6 +3906,10 @@ msgstr "Size on disk reported by the media server"
 msgid "Sizes approximate on-disk bytes and may not fully reflect hardlinks, sparse files, or filesystem snapshots."
 msgstr "Sizes approximate on-disk bytes and may not fully reflect hardlinks, sparse files, or filesystem snapshots."
 
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Sizes count each group's data once: cross-seeds share the original's files."
+msgstr "Sizes count each group's data once: cross-seeds share the original's files."
+
 #: src/components/Rules/Rule/RuleCreator/RuleInput/index.tsx
 msgid "Smaller"
 msgstr "Smaller"
@@ -3904,6 +3921,10 @@ msgstr "Some *arr histories could not be read: {instances}"
 #: src/components/Rules/Rule/RuleCreator/index.tsx
 msgid "Some incomplete rules won't be saved"
 msgstr "Some incomplete rules won't be saved"
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Sonarr"
+msgstr "Sonarr"
 
 #: src/components/Settings/Servarr/ServarrSettings.tsx
 msgid "Sonarr settings - Maintainerr"
@@ -4466,10 +4487,6 @@ msgstr "Tracearr settings could not be updated"
 #: src/components/OverlayEditor/PropertiesPanel.tsx
 msgid "Transform"
 msgstr "Transform"
-
-#: src/components/CrossSeed/CrossSeedOverview.tsx
-msgid "Tree ({groupCount})"
-msgstr "Tree ({groupCount})"
 
 #: src/components/Collection/CollectionDetail/TriggerRuleActionButton/index.tsx
 msgid "Trigger now"

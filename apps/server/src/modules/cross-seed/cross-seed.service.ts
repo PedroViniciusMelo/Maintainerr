@@ -1,5 +1,6 @@
 import {
   CrossSeedArrLink,
+  CrossSeedArrType,
   CrossSeedDeleteRequest,
   CrossSeedDeleteResponse,
   CrossSeedDeleteResult,
@@ -45,6 +46,7 @@ const baseCategory = (category: string): string => {
 interface AnalyzedGroup {
   group: TorrentGroup;
   orphanReason: CrossSeedOrphanReason | null;
+  arrType: CrossSeedArrType | null;
 }
 
 interface Analysis {
@@ -109,8 +111,8 @@ export class CrossSeedService {
       arrCategories,
       torrentCount: torrents.length,
       groups: groups
-        .map(({ group, orphanReason }) =>
-          this.toGroup(group, orphanReason, index),
+        .map(({ group, orphanReason, arrType }) =>
+          this.toGroup(group, orphanReason, arrType, index),
         )
         .sort(
           (a, b) =>
@@ -254,12 +256,44 @@ export class CrossSeedService {
     // The categories the *arrs download into, learned from the downloads
     // they grabbed. A group outside them (music, manual downloads, another
     // tool) was never *arr media, so it is not judged by *arr history.
+    // Which *arr downloads into each of those categories, by how many of its
+    // downloads use it, so a group no *arr history names still gets a home.
     const arrCategories = new Set<string>();
+    const categoryVotes = new Map<string, Map<CrossSeedArrType, number>>();
     for (const torrent of torrents) {
-      if (linksOf(torrent).length > 0) {
-        arrCategories.add(baseCategory(torrent.category ?? ''));
+      const links = linksOf(torrent);
+      if (links.length === 0) {
+        continue;
       }
+      const category = baseCategory(torrent.category ?? '');
+      arrCategories.add(category);
+      const votes = categoryVotes.get(category) ?? new Map();
+      for (const type of new Set(links.map((link) => link.instanceType))) {
+        votes.set(type, (votes.get(type) ?? 0) + 1);
+      }
+      categoryVotes.set(category, votes);
     }
+    const categoryArrType = (category: string): CrossSeedArrType | null => {
+      let best: CrossSeedArrType | null = null;
+      let bestCount = 0;
+      for (const [type, count] of categoryVotes.get(category) ?? []) {
+        if (count > bestCount) {
+          best = type;
+          bestCount = count;
+        }
+      }
+      return best;
+    };
+    const arrTypeOf = (group: TorrentGroup): CrossSeedArrType | null => {
+      const members = membersOf(group);
+      const linked = members
+        .flatMap((torrent) => linksOf(torrent))
+        .find(Boolean);
+      return (
+        linked?.instanceType ??
+        categoryArrType(baseCategory(members[0]?.category ?? ''))
+      );
+    };
 
     const groups = await groupCrossSeeds({
       torrents,
@@ -271,6 +305,7 @@ export class CrossSeedService {
     const analyzed = groups.map((group) => ({
       group,
       orphanReason: this.orphanReason(group, index, arrCategories, linksOf),
+      arrType: arrTypeOf(group),
     }));
 
     return {
@@ -328,6 +363,7 @@ export class CrossSeedService {
   private toGroup(
     group: TorrentGroup,
     orphanReason: CrossSeedOrphanReason | null,
+    arrType: CrossSeedArrType | null,
     index: ArrDownloadIndex,
   ): CrossSeedGroup {
     const toTorrent = (
@@ -370,6 +406,11 @@ export class CrossSeedService {
         .map(({ torrent, detection }) => toTorrent(torrent, detection))
         .sort((a, b) => a.addedOn - b.addedOn || a.name.localeCompare(b.name)),
       orphanReason,
+      arrType,
+      dataSize: Math.max(
+        0,
+        ...membersOf(group).map((torrent) => torrent.size ?? 0),
+      ),
     };
   }
 }

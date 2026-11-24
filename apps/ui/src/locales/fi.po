@@ -42,6 +42,11 @@ msgstr ""
 msgid "[Image]"
 msgstr ""
 
+#. placeholder {0}: summary.count
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "{0, plural, one {# download} other {# downloads}}"
+msgstr ""
+
 #: src/components/StorageMetrics/index.tsx
 msgid "{accurateMountCount} of {mountCount} mounts report total capacity"
 msgstr ""
@@ -2960,7 +2965,11 @@ msgid "Original missing"
 msgstr ""
 
 #: src/components/CrossSeed/CrossSeedOverview.tsx
-msgid "Orphans ({orphanCount})"
+msgid "Orphans"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Other"
 msgstr ""
 
 #: src/components/VersionStatus/index.tsx
@@ -3202,6 +3211,10 @@ msgstr ""
 
 #: src/components/Rules/RuleGroup/AddModal/index.tsx
 msgid "Quality profile is required for this action"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Radarr"
 msgstr ""
 
 #: src/components/Settings/Servarr/ServarrSettings.tsx
@@ -3893,6 +3906,10 @@ msgstr ""
 msgid "Sizes approximate on-disk bytes and may not fully reflect hardlinks, sparse files, or filesystem snapshots."
 msgstr ""
 
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Sizes count each group's data once: cross-seeds share the original's files."
+msgstr ""
+
 #: src/components/Rules/Rule/RuleCreator/RuleInput/index.tsx
 msgid "Smaller"
 msgstr ""
@@ -3903,6 +3920,10 @@ msgstr ""
 
 #: src/components/Rules/Rule/RuleCreator/index.tsx
 msgid "Some incomplete rules won't be saved"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Sonarr"
 msgstr ""
 
 #: src/components/Settings/Servarr/ServarrSettings.tsx
@@ -4465,10 +4486,6 @@ msgstr ""
 
 #: src/components/OverlayEditor/PropertiesPanel.tsx
 msgid "Transform"
-msgstr ""
-
-#: src/components/CrossSeed/CrossSeedOverview.tsx
-msgid "Tree ({groupCount})"
 msgstr ""
 
 #: src/components/Collection/CollectionDetail/TriggerRuleActionButton/index.tsx

@@ -135,6 +135,45 @@ describe('CrossSeedService', () => {
       });
     });
 
+    it('places each group under its *arr and counts shared data once', async () => {
+      const movie = torrent('a', { size: 4 * GB });
+      const show = torrent('s', { category: 'tv-sonarr', size: 2 * GB });
+      // No *arr history names this one; its category is Sonarr's.
+      const oldShow = torrent('o', { category: 'tv-sonarr', size: GB });
+      const music = torrent('m', { category: 'music', size: GB });
+      setup(
+        [
+          movie,
+          crossSeedOf(movie, 'b'),
+          show,
+          crossSeedOf(show, 't'),
+          oldShow,
+          crossSeedOf(oldShow, 'p'),
+          music,
+          crossSeedOf(music, 'n'),
+        ],
+        {
+          a: [link()],
+          s: [{ ...link(), instanceType: 'sonarr', instanceName: 'Sonarr' }],
+        },
+      );
+
+      const groups = (await service.getOverview()).groups;
+      const byOriginal = (hash: string) =>
+        groups.find((group) => group.original?.hash === hash);
+
+      expect(byOriginal('a')).toMatchObject({
+        arrType: 'radarr',
+        dataSize: 4 * GB,
+      });
+      expect(byOriginal('s')).toMatchObject({
+        arrType: 'sonarr',
+        dataSize: 2 * GB,
+      });
+      expect(byOriginal('o')?.arrType).toBe('sonarr');
+      expect(byOriginal('m')?.arrType).toBeNull();
+    });
+
     it('is not an orphan while the original backs media with a file', async () => {
       const original = torrent('a');
       setup([original, crossSeedOf(original, 'b')], { a: [link()] });

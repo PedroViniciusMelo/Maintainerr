@@ -42,6 +42,11 @@ msgstr ""
 msgid "[Image]"
 msgstr "[Imagen]"
 
+#. placeholder {0}: summary.count
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "{0, plural, one {# download} other {# downloads}}"
+msgstr ""
+
 #: src/components/StorageMetrics/index.tsx
 msgid "{accurateMountCount} of {mountCount} mounts report total capacity"
 msgstr "{accurateMountCount} de {mountCount} montajes informan la capacidad total"
@@ -2960,7 +2965,11 @@ msgid "Original missing"
 msgstr ""
 
 #: src/components/CrossSeed/CrossSeedOverview.tsx
-msgid "Orphans ({orphanCount})"
+msgid "Orphans"
+msgstr ""
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Other"
 msgstr ""
 
 #: src/components/VersionStatus/index.tsx
@@ -3203,6 +3212,10 @@ msgstr "Retrasa la eliminación de este elemento la cantidad de días indicada a
 #: src/components/Rules/RuleGroup/AddModal/index.tsx
 msgid "Quality profile is required for this action"
 msgstr "Se requiere perfil de calidad para esta acción"
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Radarr"
+msgstr ""
 
 #: src/components/Settings/Servarr/ServarrSettings.tsx
 msgid "Radarr settings - Maintainerr"
@@ -3893,6 +3906,10 @@ msgstr "Tamaño en disco informado por el servidor de contenido multimedia"
 msgid "Sizes approximate on-disk bytes and may not fully reflect hardlinks, sparse files, or filesystem snapshots."
 msgstr "Los tamaños se aproximan a los bytes en el disco y es posible que no reflejen completamente los enlaces físicos, los archivos dispersos o las instantáneas del sistema de archivos."
 
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Sizes count each group's data once: cross-seeds share the original's files."
+msgstr ""
+
 #: src/components/Rules/Rule/RuleCreator/RuleInput/index.tsx
 msgid "Smaller"
 msgstr "Menor"
@@ -3904,6 +3921,10 @@ msgstr ""
 #: src/components/Rules/Rule/RuleCreator/index.tsx
 msgid "Some incomplete rules won't be saved"
 msgstr "Algunas reglas incompletas no se guardarán"
+
+#: src/components/CrossSeed/CrossSeedOverview.tsx
+msgid "Sonarr"
+msgstr ""
 
 #: src/components/Settings/Servarr/ServarrSettings.tsx
 msgid "Sonarr settings - Maintainerr"
@@ -4466,10 +4487,6 @@ msgstr "La configuración de Tracearr no se pudo actualizar"
 #: src/components/OverlayEditor/PropertiesPanel.tsx
 msgid "Transform"
 msgstr "Transformar"
-
-#: src/components/CrossSeed/CrossSeedOverview.tsx
-msgid "Tree ({groupCount})"
-msgstr ""
 
 #: src/components/Collection/CollectionDetail/TriggerRuleActionButton/index.tsx
 msgid "Trigger now"
