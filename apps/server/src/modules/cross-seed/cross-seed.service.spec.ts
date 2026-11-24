@@ -362,12 +362,15 @@ describe('CrossSeedService', () => {
 });
 
 describe('isCrossSeedMarker', () => {
-  it.each(['cross-seed', 'radarr.cross-seed', 'CrossSeed', 'cross_seed'])(
-    'recognizes %s',
-    (value) => {
-      expect(isCrossSeedMarker(value)).toBe(true);
-    },
-  );
+  it.each([
+    'cross-seed',
+    'cross-seed-link',
+    'radarr.cross-seed',
+    'CrossSeed',
+    'cross_seed',
+  ])('recognizes %s', (value) => {
+    expect(isCrossSeedMarker(value)).toBe(true);
+  });
 
   it.each(['radarr', 'seed', 'cross'])('ignores %s', (value) => {
     expect(isCrossSeedMarker(value)).toBe(false);
